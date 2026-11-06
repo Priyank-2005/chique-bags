@@ -14,16 +14,13 @@
 :root {
   color-scheme: dark;
   --wine: #4A0E32;
-  --wine-deep: #240519;
-  --wine-darkest: #180210;
+  --wine-deep: #2E0620;
+  --wine-darkest: #1A0313;
   --gold: #E6BC6A;
-  --gold-light: #F7D896;
+  --gold-hover: #F2D08E;
   --blush: #F7DCE0;
-  --blush-soft: rgba(247, 220, 224, 0.82);
   --rose: #C9487A;
   box-sizing: border-box;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 *, *::before, *::after {
@@ -31,54 +28,39 @@
 }
 
 html {
-  height: 100%;
+  min-height: 100%;
+  background-color: var(--wine-deep);
 }
 
 body {
   margin: 0;
-  min-height: 100%;
-  background: radial-gradient(120% 90% at 50% -10%, #5d133f 0%, var(--wine) 45%, var(--wine-deep) 85%, var(--wine-darkest) 100%);
+  min-height: 100vh;
+  /* Seamless, uniform full-bleed luxury radial gradient without any line or banding */
+  background: radial-gradient(ellipse at 50% 15%, var(--wine) 0%, var(--wine-deep) 60%, var(--wine-darkest) 100%);
   background-color: var(--wine-deep);
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
   color: var(--blush);
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  position: relative;
-  overflow-x: hidden;
-  padding: 24px 16px;
-}
-
-/* Luxury ambient background glow effect */
-body::before {
-  content: '';
-  position: fixed;
-  top: -15%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(201, 72, 122, 0.18) 0%, rgba(74, 14, 50, 0) 70%);
-  filter: blur(50px);
-  pointer-events: none;
-  z-index: 0;
+  padding: 40px 20px;
+  box-sizing: border-box;
 }
 
 main {
   width: 100%;
   max-width: 580px;
-  padding: 40px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
-  z-index: 1;
 }
 
 /* Subtle floating potli animation */
 .potli-wrap {
-  position: relative;
   margin-bottom: 24px;
   animation: floatBag 4.8s ease-in-out infinite;
 }
@@ -88,7 +70,7 @@ main {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-7px);
+    transform: translateY(-6px);
   }
 }
 
@@ -96,7 +78,7 @@ main {
   width: min(220px, 56vw);
   height: auto;
   overflow: visible;
-  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(0 14px 25px rgba(0, 0, 0, 0.4));
 }
 
 /* Continuous elegant glint shine animation */
@@ -141,11 +123,11 @@ main {
   font-family: 'Bodoni Moda', Georgia, serif;
   font-style: italic;
   font-weight: 500;
-  font-size: 1.35rem;
+  font-size: 1.3rem;
   color: var(--gold);
-  letter-spacing: .06em;
+  letter-spacing: .05em;
   margin: 0 0 14px;
-  text-shadow: 0 2px 10px rgba(230, 188, 106, 0.25);
+  text-shadow: 0 2px 10px rgba(230, 188, 106, 0.2);
 }
 
 h1 {
@@ -163,7 +145,7 @@ h1 {
   font-size: 1.05rem;
   line-height: 1.65;
   max-width: 36ch;
-  margin: 0 0 28px;
+  margin: 0 0 30px;
   color: var(--blush);
   font-weight: 400;
 }
@@ -180,23 +162,22 @@ h1 {
 }
 
 .range li {
-  border: 1px solid rgba(230, 188, 106, 0.55);
+  border: 1px solid rgba(230, 188, 106, 0.45);
   background: rgba(230, 188, 106, 0.05);
   color: var(--gold);
   border-radius: 999px;
   padding: 8px 18px;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 500;
-  letter-spacing: 0.03em;
-  backdrop-filter: blur(6px);
-  transition: all 0.25s ease;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
 }
 
 .range li:hover {
-  background: rgba(230, 188, 106, 0.15);
+  background: rgba(230, 188, 106, 0.12);
   border-color: var(--gold);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(230, 188, 106, 0.18);
+  transform: translateY(-1px);
 }
 
 /* Main CTA Button */
@@ -204,7 +185,7 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
+  gap: 10px;
   background: var(--gold);
   color: var(--wine-deep);
   font-weight: 600;
@@ -223,9 +204,9 @@ h1 {
 }
 
 .cta:hover {
-  background: var(--gold-light);
+  background: var(--gold-hover);
   transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(230, 188, 106, 0.35);
+  box-shadow: 0 10px 24px rgba(230, 188, 106, 0.35);
 }
 
 .cta:focus-visible {
@@ -236,7 +217,7 @@ h1 {
 .note {
   margin: 18px 0 0;
   font-size: 0.9rem;
-  color: var(--blush-soft);
+  color: rgba(247, 220, 224, 0.75);
 }
 
 @media (prefers-reduced-motion: reduce) {
