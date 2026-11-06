@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Chique Bags | Coming Soon</title>
-<meta name="description" content="Chique Bags - Handcrafted embellished bags, potlis and everyday jewellery. Our new online home is coming soon.">
+<meta name="description" content="Chique Bags - Handcrafted embellished bags. Our new online home is coming soon.">
 <meta property="og:title" content="Chique Bags | Coming Soon">
-<meta property="og:description" content="We are building a new home online for our embellished bags, potlis and everyday jewellery.">
+<meta property="og:description" content="We are building a new home online for our embellished bags.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,14 +14,12 @@
 
 <style>
 :root {
-  color-scheme: dark;
-  --wine: #4A0E32;
-  --wine-deep: #2E0620;
-  --wine-darkest: #1A0313;
-  --gold: #E6BC6A;
-  --gold-hover: #F2D08E;
-  --blush: #F7DCE0;
-  --rose: #C9487A;
+  --pink-light: #fff8fa;
+  --pink-base: #fae8ee;
+  --pink-deep: #f3d7e1;
+  --text-main: #141414;
+  --text-muted: #61555a;
+  --brand-pink-dark: #b8436e;
   box-sizing: border-box;
 }
 
@@ -31,114 +29,54 @@
 
 html {
   min-height: 100%;
-  background-color: var(--wine-deep);
+  background-color: var(--pink-base);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  /* Seamless, uniform full-bleed luxury radial gradient without any line or banding */
-  background: radial-gradient(ellipse at 50% 15%, var(--wine) 0%, var(--wine-deep) 60%, var(--wine-darkest) 100%);
-  background-color: var(--wine-deep);
+  /* Seamless, ultra-soft luxury baby pink base */
+  background: radial-gradient(120% 90% at 50% 12%, var(--pink-light) 0%, var(--pink-base) 55%, var(--pink-deep) 100%);
+  background-color: var(--pink-base);
   background-attachment: fixed;
   background-size: cover;
   background-repeat: no-repeat;
-  color: var(--blush);
+  color: var(--text-main);
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 40px 20px;
+  padding: 48px 24px;
   box-sizing: border-box;
 }
 
 main {
   width: 100%;
-  max-width: 580px;
+  max-width: 540px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-/* Subtle floating potli animation */
-.potli-wrap {
-  margin-bottom: 20px;
-  animation: floatBag 4.8s ease-in-out infinite;
-}
-
-@keyframes floatBag {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-.potli {
-  width: min(200px, 48vw);
-  height: auto;
-  overflow: visible;
-  filter: drop-shadow(0 14px 25px rgba(0, 0, 0, 0.4));
-}
-
-/* Continuous elegant glint shine animation */
-.glint {
-  opacity: .9;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.glint.g1 {
-  animation: shine 3.6s ease-out 0.4s infinite;
-}
-
-.glint.g2 {
-  animation: shine 3.6s ease-out 1.6s infinite;
-}
-
-.glint.g3 {
-  animation: shine 3.6s ease-out 2.8s infinite;
-}
-
-@keyframes shine {
-  0% {
-    opacity: 0;
-    transform: scale(0.1) rotate(0deg);
-  }
-  25% {
-    opacity: 1;
-    transform: scale(1.4) rotate(45deg);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale(1) rotate(90deg);
-  }
-  75%, 100% {
-    opacity: 0;
-    transform: scale(0.3) rotate(135deg);
-  }
-}
-
+/* Elegant brand header */
 .brand {
   font-family: 'Bodoni Moda', Georgia, serif;
   font-style: italic;
   font-weight: 500;
-  font-size: 1.25rem;
-  color: var(--gold);
+  font-size: 1.35rem;
+  color: var(--brand-pink-dark);
   letter-spacing: .08em;
-  margin: 0 0 14px;
-  text-shadow: 0 2px 10px rgba(230, 188, 106, 0.2);
+  margin: 0 0 20px;
 }
 
 /* ===================================================
-   AUTHENTIC "COMING Soon" ARTWORK (Exact Match)
+   AUTHENTIC BLACK "COMING Soon" ARTWORK (Exact Match)
 =================================================== */
 .coming-soon-wrap {
   width: 100%;
   max-width: 440px;
-  margin: 6px auto 26px;
+  margin: 8px auto 28px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -149,65 +87,37 @@ main {
   max-width: 390px;
   height: auto;
   display: block;
-  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.45));
   user-select: none;
   -webkit-user-drag: none;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.06));
 }
 
+/* Descriptive Lede */
 .lede {
-  font-size: 1.05rem;
+  font-size: 1.08rem;
   line-height: 1.65;
-  max-width: 36ch;
-  margin: 0 0 30px;
-  color: var(--blush);
+  max-width: 34ch;
+  margin: 0 0 34px;
+  color: var(--text-muted);
   font-weight: 400;
 }
 
-/* Category pills */
-.range {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin: 0 0 34px;
-  padding: 0;
-  list-style: none;
-}
-
-.range li {
-  border: 1px solid rgba(230, 188, 106, 0.45);
-  background: rgba(230, 188, 106, 0.05);
-  color: var(--gold);
-  border-radius: 999px;
-  padding: 8px 18px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  backdrop-filter: blur(4px);
-  transition: all 0.2s ease;
-}
-
-.range li:hover {
-  background: rgba(230, 188, 106, 0.12);
-  border-color: var(--gold);
-  transform: translateY(-1px);
-}
-
-/* Main CTA Button */
+/* High Fashion CTA Button */
 .cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: var(--gold);
-  color: var(--wine-deep);
-  font-weight: 600;
+  background: #141414;
+  color: #ffffff;
+  font-weight: 500;
   text-decoration: none;
-  padding: 14px 32px;
+  padding: 14px 34px;
   border-radius: 999px;
-  font-size: 1rem;
+  font-size: 0.98rem;
+  letter-spacing: 0.02em;
   transition: all 0.25s ease;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 22px rgba(20, 20, 20, 0.16);
 }
 
 .cta svg {
@@ -217,99 +127,51 @@ main {
 }
 
 .cta:hover {
-  background: var(--gold-hover);
+  background: #2b2b2b;
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(230, 188, 106, 0.35);
+  box-shadow: 0 12px 28px rgba(20, 20, 20, 0.24);
 }
 
 .cta:focus-visible {
-  outline: 3px solid #fff;
+  outline: 3px solid #141414;
   outline-offset: 3px;
 }
 
+/* Note */
 .note {
   margin: 18px 0 0;
   font-size: 0.9rem;
-  color: rgba(247, 220, 224, 0.75);
+  color: rgba(97, 85, 90, 0.75);
 }
 
+/* Bottom Domain */
 .domain-footer {
-  margin-top: 36px;
+  margin-top: 48px;
   font-family: 'Bodoni Moda', Georgia, serif;
   font-size: 0.92rem;
-  letter-spacing: 0.12em;
-  color: rgba(247, 220, 224, 0.5);
+  letter-spacing: 0.14em;
+  color: rgba(97, 85, 90, 0.6);
   text-transform: lowercase;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .potli-wrap { animation: none !important; }
-  .glint { animation: none !important; }
 }
 </style>
 </head>
 <body>
 
 <main>
-  <!-- Animated Potli Bag -->
-  <div class="potli-wrap">
-    <svg class="potli" viewBox="0 0 240 280" role="img" aria-label="An embellished potli bag with a gold drawstring">
-      <defs>
-        <linearGradient id="silk" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#D45A8C"/>
-          <stop offset="1" stop-color="#8E1F57"/>
-        </linearGradient>
-      </defs>
-      <!-- strings -->
-      <path d="M70 70 C60 30 100 10 120 40 C140 10 180 30 170 70" fill="none" stroke="#E6BC6A" stroke-width="5" stroke-linecap="round"/>
-      <!-- body -->
-      <path d="M62 78 C80 92 160 92 178 78 C226 150 222 250 120 254 C18 250 14 150 62 78 Z" fill="url(#silk)"/>
-      <!-- gathered neck -->
-      <path d="M62 78 C80 92 160 92 178 78 L172 66 C150 80 90 80 68 66 Z" fill="#B53068"/>
-      <path d="M86 82 L90 100 M104 86 L106 104 M120 88 L120 106 M136 86 L134 104 M154 82 L150 100" stroke="#8E1F57" stroke-width="2" stroke-linecap="round"/>
-      <!-- gold border -->
-      <path d="M44 168 C80 190 160 190 196 168" fill="none" stroke="#E6BC6A" stroke-dasharray="1 7" stroke-linecap="round" stroke-width="4"/>
-      <!-- central motif -->
-      <g fill="none" stroke="#E6BC6A" stroke-width="2">
-        <circle cx="120" cy="205" r="26"/><circle cx="120" cy="205" r="18"/>
-      </g>
-      <g fill="#E6BC6A">
-        <circle cx="120" cy="205" r="7"/>
-        <circle cx="120" cy="171" r="3"/><circle cx="154" cy="205" r="3"/><circle cx="86" cy="205" r="3"/><circle cx="120" cy="239" r="3"/>
-        <circle cx="68" cy="140" r="3"/><circle cx="92" cy="130" r="3"/><circle cx="148" cy="130" r="3"/><circle cx="172" cy="140" r="3"/>
-        <circle cx="52" cy="190" r="3"/><circle cx="188" cy="190" r="3"/>
-      </g>
-      <g fill="#F7DCE0"><circle cx="120" cy="205" r="2.5"/></g>
-      <!-- tassels -->
-      <g stroke="#E6BC6A" stroke-width="3" stroke-linecap="round">
-        <path d="M72 70 L64 112"/><path d="M168 70 L176 112"/>
-      </g>
-      <circle cx="64" cy="114" r="6" fill="#E6BC6A"/><circle cx="176" cy="114" r="6" fill="#E6BC6A"/>
-      <!-- glints -->
-      <path class="glint g1" d="M196 118 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z" fill="#fff"/>
-      <path class="glint g2" d="M40 232 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2z" fill="#fff"/>
-      <path class="glint g3" d="M104 148 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2z" fill="#fff"/>
-    </svg>
-  </div>
-
+  <!-- Brand Name -->
   <p class="brand">Chique Bags</p>
 
-  <!-- Exact High-Resolution COMING Soon Artwork -->
+  <!-- Black COMING Soon Exact Artwork -->
   <div class="coming-soon-wrap">
     <img 
-      src="coming_soon_white.png" 
+      src="coming_soon_black.png" 
       alt="COMING Soon" 
       class="coming-soon-img"
     >
   </div>
 
-  <p class="lede">We are building a new home online for our embellished bags, potlis and everyday jewellery.</p>
-
-  <ul class="range">
-    <li>Embellished bags</li>
-    <li>Potli</li>
-    <li>Everyday jewellery</li>
-  </ul>
+  <!-- Updated Text -->
+  <p class="lede">We are building a new home online for our embellished bags.</p>
 
   <!-- Instagram Direct CTA -->
   <a class="cta" href="https://www.instagram.com/chiquebagsofficial/" target="_blank" rel="noopener">
@@ -319,6 +181,7 @@ main {
 
   <p class="note">See our latest pieces and launch updates on Instagram.</p>
 
+  <!-- Bottom Domain Reference -->
   <p class="domain-footer">www.chiquebags.com</p>
 </main>
 
