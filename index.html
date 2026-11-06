@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Chique Bags | Coming Soon</title>
 <meta name="description" content="Chique Bags - Handcrafted embellished bags. Our new online home is coming soon.">
 <meta property="og:title" content="Chique Bags | Coming Soon">
@@ -27,36 +27,49 @@
   box-sizing: inherit;
 }
 
+/* Strictly locked viewport: zero scroll up or down */
 html {
-  min-height: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
   background-color: var(--pink-base);
+  overscroll-behavior: none;
 }
 
 body {
   margin: 0;
-  min-height: 100vh;
-  /* Seamless, ultra-soft luxury baby pink base */
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  
+  /* Seamless full-bleed baby pink base */
   background: radial-gradient(120% 90% at 50% 12%, var(--pink-light) 0%, var(--pink-base) 55%, var(--pink-deep) 100%);
   background-color: var(--pink-base);
   background-attachment: fixed;
   background-size: cover;
   background-repeat: no-repeat;
+  
   color: var(--text-main);
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 48px 24px;
+  padding: 16px 20px;
   box-sizing: border-box;
 }
 
 main {
   width: 100%;
-  max-width: 540px;
+  max-width: 520px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
 }
 
 /* Elegant brand header */
@@ -64,10 +77,10 @@ main {
   font-family: 'Bodoni Moda', Georgia, serif;
   font-style: italic;
   font-weight: 500;
-  font-size: 1.35rem;
+  font-size: clamp(1.15rem, 2.8vh, 1.35rem);
   color: var(--brand-pink-dark);
   letter-spacing: .08em;
-  margin: 0 0 20px;
+  margin: 0 0 clamp(8px, 1.8vh, 18px);
 }
 
 /* ===================================================
@@ -75,8 +88,8 @@ main {
 =================================================== */
 .coming-soon-wrap {
   width: 100%;
-  max-width: 440px;
-  margin: 8px auto 28px;
+  max-width: clamp(280px, 44vh, 390px);
+  margin: 0 auto clamp(10px, 2.2vh, 22px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -84,20 +97,19 @@ main {
 
 .coming-soon-img {
   width: 100%;
-  max-width: 390px;
   height: auto;
   display: block;
   user-select: none;
   -webkit-user-drag: none;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.06));
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.05));
 }
 
 /* Descriptive Lede */
 .lede {
-  font-size: 1.08rem;
-  line-height: 1.65;
-  max-width: 34ch;
-  margin: 0 0 34px;
+  font-size: clamp(0.92rem, 2.2vh, 1.05rem);
+  line-height: 1.55;
+  max-width: 32ch;
+  margin: 0 0 clamp(16px, 2.8vh, 26px);
   color: var(--text-muted);
   font-weight: 400;
 }
@@ -107,29 +119,29 @@ main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 9px;
   background: #141414;
   color: #ffffff;
   font-weight: 500;
   text-decoration: none;
-  padding: 14px 34px;
+  padding: clamp(10px, 1.8vh, 13px) clamp(22px, 5vw, 32px);
   border-radius: 999px;
-  font-size: 0.98rem;
+  font-size: clamp(0.86rem, 1.8vh, 0.95rem);
   letter-spacing: 0.02em;
   transition: all 0.25s ease;
-  box-shadow: 0 8px 22px rgba(20, 20, 20, 0.16);
+  box-shadow: 0 8px 20px rgba(20, 20, 20, 0.16);
 }
 
 .cta svg {
-  width: 19px;
-  height: 19px;
+  width: 17px;
+  height: 17px;
   fill: currentColor;
 }
 
 .cta:hover {
   background: #2b2b2b;
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(20, 20, 20, 0.24);
+  box-shadow: 0 12px 26px rgba(20, 20, 20, 0.24);
 }
 
 .cta:focus-visible {
@@ -139,18 +151,18 @@ main {
 
 /* Note */
 .note {
-  margin: 18px 0 0;
-  font-size: 0.9rem;
+  margin: clamp(10px, 1.6vh, 14px) 0 0;
+  font-size: clamp(0.8rem, 1.6vh, 0.86rem);
   color: rgba(97, 85, 90, 0.75);
 }
 
 /* Bottom Domain */
 .domain-footer {
-  margin-top: 48px;
+  margin-top: clamp(20px, 3.6vh, 36px);
   font-family: 'Bodoni Moda', Georgia, serif;
-  font-size: 0.92rem;
+  font-size: clamp(0.82rem, 1.7vh, 0.9rem);
   letter-spacing: 0.14em;
-  color: rgba(97, 85, 90, 0.6);
+  color: rgba(97, 85, 90, 0.55);
   text-transform: lowercase;
 }
 </style>
