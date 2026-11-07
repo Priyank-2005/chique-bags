@@ -147,21 +147,38 @@
     }
 
     .nav-link {
-      font-size: 0.82rem;
+      font-size: 0.84rem;
       font-weight: 500;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.09em;
       text-transform: uppercase;
       color: #27272a;
       position: relative;
       padding: 8px 0;
-      transition: color 0.2s ease;
-      display: flex;
+      transition: color 0.25s ease;
+      display: inline-flex;
       align-items: center;
       gap: 5px;
+      cursor: pointer;
     }
 
-    .nav-link:hover {
-      color: var(--accent-pink-dark);
+    .nav-link.active {
+      color: #111111;
+    }
+
+    .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: #8b5a3e;
+      transition: all 0.25s ease;
+    }
+
+    .nav-link:hover,
+    .nav-link.active:hover {
+      color: #d8899f; /* Vibrant luxury pink on hover */
     }
 
     .nav-link::after {
@@ -171,12 +188,23 @@
       left: 0;
       width: 0;
       height: 2px;
-      background: var(--accent-pink-dark);
-      transition: width 0.25s ease;
+      background: #d8899f;
+      transition: width 0.25s ease, background 0.25s ease;
     }
 
-    .nav-link:hover::after {
+    .nav-link:hover::after,
+    .nav-link.active:hover::after {
       width: 100%;
+      background: #d8899f;
+    }
+
+    .nav-link svg {
+      transition: transform 0.2s ease, stroke 0.2s ease;
+    }
+
+    .nav-link:hover svg {
+      stroke: #d8899f;
+      transform: translateY(1px);
     }
 
     .sale-badge {
@@ -1627,11 +1655,23 @@
 
       <nav class="nav-menu-wrap">
         <ul>
-          <li><a href="#shop" class="nav-link" onclick="filterProducts('all')">All Slings</a></li>
-          <li><a href="#shop" class="nav-link" onclick="filterProducts('bestseller')">Bestsellers <span class="sale-badge">Hot</span></a></li>
-          <li><a href="#shop" class="nav-link" onclick="filterProducts('chain')">Quilted & Chain</a></li>
-          <li><a href="#shop" class="nav-link" onclick="filterProducts('crescent')">Crescent Slings</a></li>
-          <li><a href="#under999" class="nav-link" onclick="filterProducts('under999')">Under ₹999 <span class="sale-badge" style="background:#b8436e;">Sale</span></a></li>
+          <li><a href="#" class="nav-link active">HOME</a></li>
+          <li class="dropdown">
+            <a href="#shop" class="nav-link" onclick="filterProducts('all')">
+              SHOP
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            </a>
+            <div class="dropdown-content">
+              <a href="#shop" class="dropdown-item" onclick="filterProducts('all')">All Sling Bags <span>→</span></a>
+              <a href="#shop" class="dropdown-item" onclick="filterProducts('bestseller')">Bestsellers <span class="sale-badge">Hot</span></a>
+              <a href="#shop" class="dropdown-item" onclick="filterProducts('chain')">Quilted & Chain Slings <span>→</span></a>
+              <a href="#shop" class="dropdown-item" onclick="filterProducts('crescent')">Crescent Slings <span>→</span></a>
+              <a href="#under999" class="dropdown-item" onclick="filterProducts('under999')">Under ₹999 <span class="sale-badge" style="background:#b8436e;">Sale</span></a>
+            </div>
+          </li>
+          <li><a href="#under999" class="nav-link">GIFTING</a></li>
+          <li><a href="#about" class="nav-link">ABOUT US</a></li>
+          <li><a href="#contact" class="nav-link">CONTACT</a></li>
         </ul>
       </nav>
 
