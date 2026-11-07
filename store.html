@@ -1614,6 +1614,34 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Floating Sleek Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #111827;
+      color: #ffffff;
+      padding: 12px 22px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 500;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
+      display: none;
+      align-items: center;
+      gap: 10px;
+      z-index: 99999;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+
+    .toast.show {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
+    }
   </style>
 </head>
 <body>
@@ -2201,10 +2229,10 @@
     </button>
   </nav>
 
-  <!-- Toast Notification -->
+  <!-- Toast Notification (Hidden by default) -->
   <div class="toast" id="toastMessage">
-    <span>🛍️</span>
-    <span id="toastText">Bag added to cart!</span>
+    <span id="toastIcon">🛍️</span>
+    <span id="toastText"></span>
   </div>
 
   <!-- ===================================================
@@ -2272,24 +2300,33 @@
       element.classList.add('active');
     }
 
-    document.getElementById('hamburgerBtn').addEventListener('click', toggleMobileMenu);
-    document.getElementById('closeMobileMenu').addEventListener('click', toggleMobileMenu);
+    const hb = document.getElementById('hamburgerBtn');
+    if (hb) hb.addEventListener('click', toggleMobileMenu);
+    const cm = document.getElementById('closeMobileMenu');
+    if (cm) cm.addEventListener('click', toggleMobileMenu);
 
     // Cart Button Trigger
-    document.getElementById('cartToggleBtn').addEventListener('click', toggleCartDrawer);
+    const cb = document.getElementById('cartToggleBtn');
+    if (cb) cb.addEventListener('click', toggleCartDrawer);
 
     // Search Overlay Toggles
     const searchOverlay = document.getElementById('searchOverlay');
-    document.getElementById('searchToggleBtn').addEventListener('click', () => {
-      searchOverlay.classList.toggle('active');
-      if (searchOverlay.classList.contains('active')) {
-        document.getElementById('searchInput').focus();
-      }
-    });
+    const stb = document.getElementById('searchToggleBtn');
+    if (stb) {
+      stb.addEventListener('click', () => {
+        searchOverlay.classList.toggle('active');
+        if (searchOverlay.classList.contains('active')) {
+          document.getElementById('searchInput').focus();
+        }
+      });
+    }
 
-    document.getElementById('searchCloseBtn').addEventListener('click', () => {
-      searchOverlay.classList.remove('active');
-    });
+    const scb = document.getElementById('searchCloseBtn');
+    if (scb) {
+      scb.addEventListener('click', () => {
+        searchOverlay.classList.remove('active');
+      });
+    }
 
     // Add to Cart Function
     function addToCart(title, price, image, variant) {
