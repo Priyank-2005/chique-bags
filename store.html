@@ -1598,6 +1598,177 @@
     }
 
     @media (max-width: 600px) {
+      .footer-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Top Announcement Bar -->
+  <div class="announcement-bar">
+    <span>✨ Launch Special: Get Flat 15% OFF on your first order | Use Code: <span class="highlight">CHIQUE15</span></span>
+    <div class="announcement-right">
+      <span>Free Shipping ₹999+</span>
+      <span>PETA-Approved Vegan</span>
+      <span>COD Available</span>
+    </div>
+  </div>
+
+  <!-- 2. Clean Luxury Navbar -->
+  <header class="sticky-header">
+    <div class="navbar-container">
+      <div class="nav-brand-wrap">
+        <a href="#" class="brand-link">
+          <span style="font-family:var(--font-serif); font-size:1.6rem; font-weight:700; letter-spacing:0.04em; color:#111;">Chique Bags</span>
+        </a>
+      </div>
+
+      <nav class="nav-menu-wrap">
+        <ul>
+          <li><a href="#shop" class="nav-link" onclick="filterProducts('all')">All Slings</a></li>
+          <li><a href="#shop" class="nav-link" onclick="filterProducts('bestseller')">Bestsellers <span class="sale-badge">Hot</span></a></li>
+          <li><a href="#shop" class="nav-link" onclick="filterProducts('chain')">Quilted & Chain</a></li>
+          <li><a href="#shop" class="nav-link" onclick="filterProducts('crescent')">Crescent Slings</a></li>
+          <li><a href="#under999" class="nav-link" onclick="filterProducts('under999')">Under ₹999 <span class="sale-badge" style="background:#b8436e;">Sale</span></a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions-wrap">
+        <button class="action-btn" onclick="toggleSearch()" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </button>
+        <button class="action-btn" onclick="showToast('You have ' + wishlistCount + ' saved items in Wishlist ❤️')" aria-label="Wishlist">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+          <span class="badge-counter" id="wishlistCountBadge">0</span>
+        </button>
+        <button class="action-btn" onclick="toggleCartDrawer()" aria-label="Cart">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+          <span class="badge-counter highlight" id="cartItemCountBadge">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 3. Search Overlay Bar -->
+  <div class="search-overlay" id="searchOverlay">
+    <div class="search-inner">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search sling bags, quilted, crescent, chain..." onkeyup="if(event.key==='Enter') filterByTag(this.value)">
+      <button class="search-close-btn" onclick="toggleSearch()">✕</button>
+      <div class="quick-search-tags">
+        <span>Popular:</span>
+        <span class="quick-tag" onclick="filterByTag('crescent')">Crescent</span>
+        <span class="quick-tag" onclick="filterByTag('quilted')">Quilted Chain</span>
+        <span class="quick-tag" onclick="filterByTag('under999')">Under ₹999</span>
+        <span class="quick-tag" onclick="filterByTag('black')">Black</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Hero Banner Section -->
+  <section class="hero-section">
+    <div class="hero-container">
+      <div class="hero-content">
+        <span class="hero-tag">New Season Collection 2026</span>
+        <h1 class="hero-title">Carry Elegance in <em>Every Stride</em></h1>
+        <p class="hero-desc">Discover our premium range of artisanal sling & crossbody bags. Structured silhouettes, gold-finish hardware, and 100% cruelty-free vegan leather.</p>
+        <div class="hero-actions">
+          <a href="#shop" class="btn-primary" onclick="filterProducts('all')">Explore Collection ↓</a>
+          <a href="#under999" class="btn-secondary">Under ₹999 Slings</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-img-card">
+          <img src="https://images.unsplash.com/photo-1594223274512-ad4803739b7c?auto=format&fit=crop&w=900&q=80" alt="Chique Luxury Sling" class="hero-img">
+          <div class="hero-float-pill">
+            <div class="pill-info">
+              <h4>The Petite Crescent Sling</h4>
+              <p>Dusty Rose • Premium Vegan Leather</p>
+            </div>
+            <div class="pill-price">₹1,299</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Story / Category Section -->
+  <section class="story-section">
+    <div class="story-track">
+      <div class="story-item" onclick="filterProducts('all', document.querySelectorAll('.tab-btn')[0])">
+        <div class="story-avatar-wrap">
+          <div class="story-avatar"><img src="https://images.unsplash.com/photo-1594223274512-ad4803739b7c?auto=format&fit=crop&w=200&q=80" alt="All"></div>
+        </div>
+        <span class="story-name">All Slings</span>
+      </div>
+      <div class="story-item" onclick="filterProducts('bestseller', document.querySelectorAll('.tab-btn')[1])">
+        <div class="story-avatar-wrap">
+          <div class="story-avatar"><img src="https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=200&q=80" alt="Bestsellers"></div>
+        </div>
+        <span class="story-name">Bestsellers</span>
+      </div>
+      <div class="story-item" onclick="filterProducts('chain', document.querySelectorAll('.tab-btn')[3])">
+        <div class="story-avatar-wrap">
+          <div class="story-avatar"><img src="https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=200&q=80" alt="Chain"></div>
+        </div>
+        <span class="story-name">Gold Chain</span>
+      </div>
+      <div class="story-item" onclick="filterProducts('crescent', document.querySelectorAll('.tab-btn')[4])">
+        <div class="story-avatar-wrap">
+          <div class="story-avatar"><img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=200&q=80" alt="Crescent"></div>
+        </div>
+        <span class="story-name">Crescent</span>
+      </div>
+      <div class="story-item" onclick="filterProducts('under999', document.querySelectorAll('.tab-btn')[2])">
+        <div class="story-avatar-wrap">
+          <div class="story-avatar"><img src="https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?auto=format&fit=crop&w=200&q=80" alt="Under 999"></div>
+        </div>
+        <span class="story-name">Under ₹999</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Trust Strip -->
+  <div class="trust-bar">
+    <div class="trust-container">
+      <div class="trust-item">
+        <div class="trust-icon">✨</div>
+        <div class="trust-text">
+          <h5>100% PETA Vegan</h5>
+          <p>Cruelty-free premium leather</p>
+        </div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon">🚚</div>
+        <div class="trust-text">
+          <h5>Free Shipping ₹999+</h5>
+          <p>Delivered in 3-5 days across India</p>
+        </div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon">🔄</div>
+        <div class="trust-text">
+          <h5>Easy 7-Day Exchange</h5>
+          <p>Hassle-free doorstep pickup</p>
+        </div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon">💳</div>
+        <div class="trust-text">
+          <h5>Cash on Delivery</h5>
+          <p>Available on all orders</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Product Catalog Section -->
+  <section class="section-wrap" id="shop">
+    <div class="section-header">
+      <p class="section-subtitle">Handcrafted Luxury</p>
+      <h2 class="section-title">Everyday Modern Slings</h2>
+    </div>
     <div class="filter-tabs">
       <button class="tab-btn active" onclick="filterProducts('all', this)">All Slings</button>
       <button class="tab-btn" onclick="filterProducts('bestseller', this)">Bestsellers</button>
