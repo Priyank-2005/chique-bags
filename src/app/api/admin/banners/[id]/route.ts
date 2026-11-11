@@ -1,3 +1,4 @@
+import { refreshStore } from "@/lib/revalidate";
 import { prisma } from "@/lib/db";
 import { adminGuard, ok, parseBody } from "@/lib/api";
 import { bannerSchema } from "@/lib/banners";
@@ -7,6 +8,7 @@ export const dynamic = "force-dynamic";
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const denied = await adminGuard();
   if (denied) return denied;
+  refreshStore("banners");
   const { id } = await params;
   const parsed = await parseBody(req, bannerSchema);
   if ("error" in parsed) return parsed.error;
@@ -30,6 +32,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const denied = await adminGuard();
   if (denied) return denied;
+  refreshStore("banners");
   const { id } = await params;
   await prisma.banner.delete({ where: { id } }).catch(() => null);
   return ok();

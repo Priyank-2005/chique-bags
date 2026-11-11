@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 
 export const DEFAULT_SETTINGS = {
@@ -42,7 +43,7 @@ export type Settings = {
   businessState: string;
 };
 
-export const getSettings = cache(async (): Promise<Settings> => {
+async function loadSettings(): Promise<Settings> {
   const rows = await prisma.setting.findMany();
   const raw: Record<string, string> = { ...DEFAULT_SETTINGS };
   for (const r of rows) raw[r.key] = r.value;
@@ -64,7 +65,11 @@ export const getSettings = cache(async (): Promise<Settings> => {
     hsnCode: raw.hsnCode,
     businessState: raw.businessState,
   };
-});
+}
+
+// Read on every page, changed rarely: keep it for a few minutes instead of asking the database each time.
+const cachedSettings = unstable_cache(loadSettings, ["site-settings"], { tags: ["settings"], revalidate: 300 });
+export const getSettings = cache(cachedSettings);
 
 export async function saveSettings(values: Partial<Record<SettingKey, string>>) {
   await prisma.$transaction(

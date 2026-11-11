@@ -24,7 +24,14 @@ export interface HeroBanner {
 const AUTOPLAY_MS = 6500;
 
 /** A banner with no words of its own is a finished picture: show all of it, uncropped, and let the whole banner be the link. */
-const isPicture = (b: HeroBanner) => !b.title && !b.eyebrow && !b.subtitle && !b.ctaText && !b.cta2Text;
+const isPicture = (b: HeroBanner) => !b.title && !b.eyebrow && !b.subtitle;
+
+/** Buttons for a picture banner. With none set up in the admin panel it offers "Shop now" and "Gift a bag". */
+function pictureButtons(b: HeroBanner): { text: string; href: string }[] {
+  const first = { text: b.ctaText || "Shop now", href: b.ctaHref || "/shop" };
+  const second = b.cta2Text && b.cta2Href ? { text: b.cta2Text, href: b.cta2Href } : !b.ctaText ? { text: "Gift a bag", href: "/gifting" } : null;
+  return second ? [first, second] : [first];
+}
 
 export default function HeroBanners({ banners }: { banners: HeroBanner[] }) {
   const [index, setIndex] = useState(0);
@@ -45,7 +52,10 @@ export default function HeroBanners({ banners }: { banners: HeroBanner[] }) {
   const allPictures = banners.every(isPicture);
   const darkControls = isPicture(banners[index]);
 
+  const mobileButtons = isPicture(banners[index]) ? pictureButtons(banners[index]) : [];
+
   return (
+    <>
     <section
       aria-roledescription="carousel"
       aria-label="Featured collections"
@@ -87,7 +97,14 @@ export default function HeroBanners({ banners }: { banners: HeroBanner[] }) {
                   <Image src={b.image} alt="" fill priority={i === 0} sizes="100vw" className="object-cover" style={{ objectPosition: b.focus }} />
                 )}
               </div>
-              {picture && b.ctaHref && <Link href={b.ctaHref} tabIndex={active ? 0 : -1} aria-label="Shop the collection" className="absolute inset-0 z-10" />}
+              {picture && (b.ctaHref || "/shop") && <Link href={b.ctaHref || "/shop"} tabIndex={-1} aria-hidden="true" className="absolute inset-0 z-10" />}
+              {picture && (
+                <div className={`absolute left-[5.5%] top-[67%] z-20 hidden gap-3 md:flex ${active ? "hero-copy" : ""}`}>
+                  {pictureButtons(b).map((btn, k) => (
+                    <Link key={btn.text} href={btn.href} tabIndex={active ? 0 : -1} className={k === 0 ? "btn btn-dark btn-sm" : "btn btn-line btn-sm"}>{btn.text}</Link>
+                  ))}
+                </div>
+              )}
               {/* readability overlay */}
               {!picture && <div className={`absolute inset-0 ${light ? "bg-gradient-to-t from-black/70 via-black/20 to-black/10 md:bg-gradient-to-r md:from-black/60 md:via-black/20 md:to-transparent" : "bg-gradient-to-t from-white/85 via-white/35 to-white/10 md:bg-gradient-to-r md:from-white/85 md:via-white/35 md:to-transparent"}`} />}
 
@@ -133,5 +150,13 @@ export default function HeroBanners({ banners }: { banners: HeroBanner[] }) {
         </>
       )}
     </section>
+    {mobileButtons.length > 0 && (
+      <div className="flex justify-center gap-3 bg-cream px-4 py-4 md:hidden">
+        {mobileButtons.map((btn, k) => (
+          <Link key={btn.text} href={btn.href} className={k === 0 ? "btn btn-dark btn-sm" : "btn btn-line btn-sm"}>{btn.text}</Link>
+        ))}
+      </div>
+    )}
+    </>
   );
 }

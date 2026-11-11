@@ -1,3 +1,4 @@
+import { refreshStore } from "@/lib/revalidate";
 import { prisma } from "@/lib/db";
 import { adminGuard, ok, parseBody } from "@/lib/api";
 import { bannerSchema } from "@/lib/banners";
@@ -18,6 +19,7 @@ const clean = (d: ReturnType<typeof bannerSchema.parse>) => ({
 export async function POST(req: Request) {
   const denied = await adminGuard();
   if (denied) return denied;
+  refreshStore("banners");
   const parsed = await parseBody(req, bannerSchema);
   if ("error" in parsed) return parsed.error;
   const banner = await prisma.banner.create({ data: clean(parsed.data) });

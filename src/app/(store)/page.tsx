@@ -6,11 +6,18 @@ import HeroBanners from "@/components/store/HeroBanners";
 import ProductCard from "@/components/store/ProductCard";
 import Testimonials from "@/components/store/Testimonials";
 import { getCards, getNavCategories } from "@/lib/catalog";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatINR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+const getActiveBanners = unstable_cache(
+  () => prisma.banner.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], select: { id: true, eyebrow: true, title: true, subtitle: true, ctaText: true, ctaHref: true, cta2Text: true, cta2Href: true, image: true, imageMobile: true, focus: true, theme: true } }),
+  ["home-banners"],
+  { tags: ["banners"], revalidate: 120 }
+);
 
 function SectionHead({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
@@ -26,7 +33,7 @@ export default async function HomePage() {
   const [settings, categories, banners, bestsellers, arrivals] = await Promise.all([
     getSettings(),
     getNavCategories(),
-    prisma.banner.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }),
+    getActiveBanners(),
     getCards({ isBestSeller: true }, 4, { createdAt: "desc" }),
     getCards({}, 4, { createdAt: "desc" }),
   ]);

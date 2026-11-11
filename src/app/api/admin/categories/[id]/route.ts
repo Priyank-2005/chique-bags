@@ -1,3 +1,4 @@
+import { refreshStore } from "@/lib/revalidate";
 import { prisma } from "@/lib/db";
 import { adminGuard, fail, ok, parseBody } from "@/lib/api";
 import { categorySchema } from "@/lib/validations";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const denied = await adminGuard();
   if (denied) return denied;
+  refreshStore("catalog");
   const { id } = await params;
   const existing = await prisma.category.findUnique({ where: { id } });
   if (!existing) return fail("Category not found.", 404);
@@ -27,6 +29,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const denied = await adminGuard();
   if (denied) return denied;
+  refreshStore("catalog");
   const { id } = await params;
   const count = await prisma.product.count({ where: { categoryId: id } });
   if (count > 0) return fail(`This category still has ${count} product${count === 1 ? "" : "s"}. Move or delete them first.`, 400);

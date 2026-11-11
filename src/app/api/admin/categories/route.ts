@@ -1,3 +1,4 @@
+import { refreshStore } from "@/lib/revalidate";
 import { prisma } from "@/lib/db";
 import { adminGuard, ok, parseBody } from "@/lib/api";
 import { categorySchema } from "@/lib/validations";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const denied = await adminGuard();
   if (denied) return denied;
+  refreshStore("catalog");
   const parsed = await parseBody(req, categorySchema);
   if ("error" in parsed) return parsed.error;
   const category = await prisma.category.create({

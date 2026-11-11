@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 
 export const cardInclude = { variants: { orderBy: { sortOrder: "asc" } } } satisfies Prisma.ProductInclude;
@@ -39,13 +40,24 @@ export function toCard(p: CardRow): ProductCardData {
   };
 }
 
-export async function getCards(where: Prisma.ProductWhereInput, take = 8, orderBy: Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[] = { createdAt: "desc" }) {
+async function loadCards(where: Prisma.ProductWhereInput, take: number, orderBy: Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[]) {
   const rows = await prisma.product.findMany({ where: { isActive: true, ...where }, include: cardInclude, orderBy, take });
   return rows.map(toCard);
 }
 
-export const getNavCategories = () =>
-  prisma.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, slug: true, image: true, description: true } });
+// Product cards appear on most pages: reuse the result for a minute (the admin panel refreshes it when products change).
+const cachedCards = unstable_cache(loadCards, ["catalog-cards"], { tags: ["catalog"], revalidate: 60 });
+
+export async function getCards(where: Prisma.ProductWhereInput, take = 8, orderBy: Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[] = { createdAt: "desc" }) {
+  return cachedCards(where, take, orderBy);
+}
+
+export const getNavCategories = unstable_cache(
+  () =>
+    prisma.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, slug: true, image: true, description: true } }),
+  ["nav-categories"],
+  { tags: ["catalog"], revalidate: 60 }
+);
 
 export const SORTS = {
   newest: { label: "Newest", orderBy: { createdAt: "desc" } },

@@ -1,3 +1,4 @@
+import { refreshStore } from "@/lib/revalidate";
 import { z } from "zod";
 import { adminGuard, ok, parseBody } from "@/lib/api";
 import { saveSettings } from "@/lib/settings";
@@ -26,6 +27,7 @@ const schema = z.object({
 export async function PUT(req: Request) {
   const denied = await adminGuard();
   if (denied) return denied;
+  refreshStore("settings");
   const parsed = await parseBody(req, schema);
   if ("error" in parsed) return parsed.error;
   const d = parsed.data;
