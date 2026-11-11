@@ -1,3 +1,4 @@
+import { orderPath } from "@/lib/order-access";
 import type { Order, OrderItem } from "@prisma/client";
 import { sendMail } from "@/lib/mail";
 import { getSettings } from "@/lib/settings";
@@ -91,7 +92,7 @@ export async function sendOrderConfirmation(order: OrderWithItems) {
         p("<strong>Delivering to</strong>") +
         addressBlock(order) +
         giftBlock(order) +
-        button(appUrl(`/account/orders/${order.id}`), "View your order") +
+        button(appUrl(orderPath(order)), "View your order") +
         p("We'll email you again as soon as your bag ships.")
     ),
   });
@@ -105,7 +106,7 @@ export async function sendOrderShipped(order: OrderWithItems) {
       "Your order has shipped",
       p(`Good news, ${e(order.customerName.split(" ")[0])}! Order <strong>${e(order.orderNumber)}</strong> is on its way.`) +
         (order.courier ? p(`Courier: <strong>${e(order.courier)}</strong>`) : "") +
-        (order.trackingUrl ? button(order.trackingUrl, "Track your order") : button(appUrl(`/account/orders/${order.id}`), "View your order")) +
+        (order.trackingUrl ? button(order.trackingUrl, "Track your order") : button(appUrl(orderPath(order)), "View your order")) +
         addressBlock(order)
     ),
   });
@@ -118,7 +119,7 @@ export async function sendOrderDelivered(order: OrderWithItems) {
     html: layout(
       "Your order has been delivered",
       p(`We hope you love your new bag, ${e(order.customerName.split(" ")[0])}. Tag us <strong>@chiquebagsofficial</strong> on Instagram, we'd love to see how you style it.`) +
-        button(appUrl(`/account/orders/${order.id}`), "Review your purchase")
+        button(appUrl(orderPath(order)), order.userId ? "Review your purchase" : "View your order")
     ),
   });
 }
@@ -186,7 +187,7 @@ export async function sendReturnReceived(order: Order, ret: ReturnLike, byStore:
       html: layout(
         "We've received your request",
         p(`Hi ${e(order.customerName.split(" ")[0])}, we're sorry your bag wasn't right. Your request <strong>${e(ret.number)}</strong> for order <strong>${e(order.orderNumber)}</strong> is with our team, and we'll update you within one working day.`) +
-          button(appUrl(`/account/orders/${order.id}`), "View your request")
+          button(appUrl(orderPath(order)), "View your request")
       ),
     });
   }
@@ -231,5 +232,5 @@ export async function sendReturnUpdate(order: Order, ret: ReturnLike, status: st
   };
   const c = content[status];
   if (!c) return;
-  await sendMail({ to: order.customerEmail, subject: c.subject, html: layout(c.title, c.body + button(appUrl(`/account/orders/${order.id}`), "View your order")) });
+  await sendMail({ to: order.customerEmail, subject: c.subject, html: layout(c.title, c.body + button(appUrl(orderPath(order)), "View your order")) });
 }

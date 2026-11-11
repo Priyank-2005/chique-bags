@@ -1,3 +1,4 @@
+import { claimGuestOrders } from "@/lib/order-access";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { fail, limit, ok, parseBody } from "@/lib/api";
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
     update: { name: data.name, phone: data.phone ?? undefined, password: data.passwordHash, emailVerified: true },
   });
   await loginCustomer(user.id);
+  await claimGuestOrders(user.id, user.email).catch(() => {});
   void sendWelcome(user.name, user.email);
   return ok({ ok: true, user: { id: user.id, name: user.name, email: user.email } });
 }

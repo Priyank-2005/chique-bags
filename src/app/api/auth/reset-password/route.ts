@@ -1,3 +1,4 @@
+import { claimGuestOrders } from "@/lib/order-access";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
@@ -24,5 +25,6 @@ export async function POST(req: Request) {
   if (!user || user.role !== "CUSTOMER") return fail("Account not found.", 404);
   await prisma.user.update({ where: { id: user.id }, data: { password: await bcrypt.hash(password, 11), emailVerified: true } });
   await loginCustomer(user.id);
+  await claimGuestOrders(user.id, user.email).catch(() => {});
   return ok({ ok: true });
 }

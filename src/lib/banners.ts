@@ -8,7 +8,7 @@ const href = z
 
 export const bannerSchema = z.object({
   eyebrow: z.string().trim().max(60).nullish(),
-  title: z.string().trim().min(2, "Enter a headline").max(120),
+  title: z.string().trim().max(120).default(""), // empty = a picture banner whose image already carries its own words
   subtitle: z.string().trim().max(240).nullish(),
   ctaText: z.string().trim().max(30).nullish(),
   ctaHref: href.nullish(),

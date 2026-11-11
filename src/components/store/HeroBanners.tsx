@@ -23,6 +23,9 @@ export interface HeroBanner {
 
 const AUTOPLAY_MS = 6500;
 
+/** A banner with no words of its own is a finished picture: show all of it, uncropped, and let the whole banner be the link. */
+const isPicture = (b: HeroBanner) => !b.title && !b.eyebrow && !b.subtitle && !b.ctaText && !b.cta2Text;
+
 export default function HeroBanners({ banners }: { banners: HeroBanner[] }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -39,12 +42,14 @@ export default function HeroBanners({ banners }: { banners: HeroBanner[] }) {
   }, [count, paused]);
 
   if (count === 0) return null;
+  const allPictures = banners.every(isPicture);
+  const darkControls = isPicture(banners[index]);
 
   return (
     <section
       aria-roledescription="carousel"
       aria-label="Featured collections"
-      className="relative isolate overflow-hidden bg-ink"
+      className={`relative isolate overflow-hidden ${allPictures ? "bg-cream" : "bg-ink"}`}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -57,10 +62,11 @@ export default function HeroBanners({ banners }: { banners: HeroBanner[] }) {
         touchX.current = null;
       }}
     >
-      <div className="relative h-[82svh] min-h-[520px] max-h-[760px] lg:h-[calc(100svh-150px)] lg:min-h-[560px] lg:max-h-[780px]">
+      <div className={allPictures ? "relative aspect-[3168/1344] max-h-[calc(100svh-110px)] w-full" : "relative h-[82svh] min-h-[520px] max-h-[760px] lg:h-[calc(100svh-150px)] lg:min-h-[560px] lg:max-h-[780px]"}>
         {banners.map((b, i) => {
           const active = i === index;
           const light = b.theme !== "dark";
+          const picture = isPicture(b);
           return (
             <div
               key={b.id}
@@ -81,11 +87,12 @@ export default function HeroBanners({ banners }: { banners: HeroBanner[] }) {
                   <Image src={b.image} alt="" fill priority={i === 0} sizes="100vw" className="object-cover" style={{ objectPosition: b.focus }} />
                 )}
               </div>
+              {picture && b.ctaHref && <Link href={b.ctaHref} tabIndex={active ? 0 : -1} aria-label="Shop the collection" className="absolute inset-0 z-10" />}
               {/* readability overlay */}
-              <div className={`absolute inset-0 ${light ? "bg-gradient-to-t from-black/70 via-black/20 to-black/10 md:bg-gradient-to-r md:from-black/60 md:via-black/20 md:to-transparent" : "bg-gradient-to-t from-white/85 via-white/35 to-white/10 md:bg-gradient-to-r md:from-white/85 md:via-white/35 md:to-transparent"}`} />
+              {!picture && <div className={`absolute inset-0 ${light ? "bg-gradient-to-t from-black/70 via-black/20 to-black/10 md:bg-gradient-to-r md:from-black/60 md:via-black/20 md:to-transparent" : "bg-gradient-to-t from-white/85 via-white/35 to-white/10 md:bg-gradient-to-r md:from-white/85 md:via-white/35 md:to-transparent"}`} />}
 
               {/* copy */}
-              <div className="wrap relative flex h-full items-end pb-20 md:items-center md:pb-0">
+              {!picture && <div className="wrap relative flex h-full items-end pb-20 md:items-center md:pb-0">
                 <div className={`max-w-xl ${light ? "text-white" : "text-ink"} ${active ? "hero-copy" : ""}`}>
                   {b.eyebrow && <p className={`text-[0.7rem] font-medium uppercase tracking-[0.34em] ${light ? "text-rose-soft" : "text-berry"}`}>{b.eyebrow}</p>}
                   <h2 className="h-display mt-4 text-[2.6rem] leading-[1.02] sm:text-6xl lg:text-[4.6rem]">
@@ -99,7 +106,7 @@ export default function HeroBanners({ banners }: { banners: HeroBanner[] }) {
                     </div>
                   )}
                 </div>
-              </div>
+              </div>}
             </div>
           );
         })}
@@ -117,12 +124,12 @@ export default function HeroBanners({ banners }: { banners: HeroBanner[] }) {
                 onClick={() => go(i)}
                 className="group grid h-6 w-10 place-items-center"
               >
-                <span className={`block h-[2px] w-full transition-all ${i === index ? "bg-white" : "bg-white/40 group-hover:bg-white/70"}`} />
+                <span className={`block h-[2px] w-full transition-all ${darkControls ? (i === index ? "bg-ink" : "bg-ink/30 group-hover:bg-ink/60") : i === index ? "bg-white" : "bg-white/40 group-hover:bg-white/70"}`} />
               </button>
             ))}
           </div>
-          <button aria-label="Previous slide" onClick={() => go(index - 1)} className="absolute left-4 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 place-items-center border border-white/40 text-white backdrop-blur-sm transition hover:bg-white hover:text-ink lg:grid"><ChevronLeft size={20} /></button>
-          <button aria-label="Next slide" onClick={() => go(index + 1)} className="absolute right-4 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 place-items-center border border-white/40 text-white backdrop-blur-sm transition hover:bg-white hover:text-ink lg:grid"><ChevronRight size={20} /></button>
+          <button aria-label="Previous slide" onClick={() => go(index - 1)} className={`absolute left-4 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 place-items-center border backdrop-blur-sm transition lg:grid ${darkControls ? "border-ink/30 text-ink hover:bg-ink hover:text-white" : "border-white/40 text-white hover:bg-white hover:text-ink"}`}><ChevronLeft size={20} /></button>
+          <button aria-label="Next slide" onClick={() => go(index + 1)} className={`absolute right-4 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 place-items-center border backdrop-blur-sm transition lg:grid ${darkControls ? "border-ink/30 text-ink hover:bg-ink hover:text-white" : "border-white/40 text-white hover:bg-white hover:text-ink"}`}><ChevronRight size={20} /></button>
         </>
       )}
     </section>

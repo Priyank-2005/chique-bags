@@ -4,6 +4,7 @@ import { Hand, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import GiftSection from "@/components/store/GiftSection";
 import HeroBanners from "@/components/store/HeroBanners";
 import ProductCard from "@/components/store/ProductCard";
+import Testimonials from "@/components/store/Testimonials";
 import { getCards, getNavCategories } from "@/lib/catalog";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
@@ -122,6 +123,9 @@ export default async function HomePage() {
 
       {/* Gifting */}
       {settings.giftBoxEnabled && <GiftSection image={settings.giftBoxImage} fee={settings.giftBoxFee} />}
+
+      {/* Customer reviews */}
+      <Testimonials />
 
       {/* New arrivals */}
       {arrivals.length > 0 && (

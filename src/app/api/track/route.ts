@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { prisma } from "@/lib/db";
 import { fail, limit, ok, parseBody } from "@/lib/api";
+import { getTrackResult } from "@/lib/track";
 import { emailSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
@@ -13,10 +13,7 @@ export async function POST(req: Request) {
   if (limited) return limited;
   const parsed = await parseBody(req, schema);
   if ("error" in parsed) return parsed.error;
-  const order = await prisma.order.findFirst({
-    where: { orderNumber: parsed.data.orderNumber, customerEmail: parsed.data.email },
-    select: { orderNumber: true, status: true, courier: true, trackingUrl: true, createdAt: true, shippedAt: true, deliveredAt: true, items: { select: { name: true, variantName: true, quantity: true } } },
-  });
+  const order = await getTrackResult({ orderNumber: parsed.data.orderNumber, email: parsed.data.email });
   if (!order) return fail("We couldn't find an order with those details.", 404);
   return ok({ order });
 }

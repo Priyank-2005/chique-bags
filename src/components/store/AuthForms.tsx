@@ -62,10 +62,10 @@ export function LoginForm({ next }: { next?: string }) {
   );
 }
 
-export function SignupForm({ next }: { next?: string }) {
+export function SignupForm({ next, email }: { next?: string; email?: string }) {
   const router = useRouter();
   const [step, setStep] = useState<"details" | "code">("details");
-  const [f, setF] = useState({ name: "", email: "", phone: "", password: "" });
+  const [f, setF] = useState({ name: "", email: email ?? "", phone: "", password: "" });
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

@@ -223,3 +223,19 @@ body {
   header, footer, nav, .announce { display: none !important; }
   main { padding: 0 !important; }
 }
+
+/* Brand loader (admin sign-in and page changes) */
+@keyframes loader-sweep {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(260%); }
+}
+@keyframes loader-breathe {
+  0%, 100% { opacity: 0.55; letter-spacing: 0.32em; }
+  50% { opacity: 1; letter-spacing: 0.38em; }
+}
+.loader-bar { animation: loader-sweep 1.4s cubic-bezier(0.45, 0, 0.2, 1) infinite; }
+.loader-mark { animation: loader-breathe 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .loader-bar { animation: none !important; transform: none; width: 100%; opacity: 0.6; }
+  .loader-mark { animation: none !important; }
+}

@@ -11,9 +11,11 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQ
 
 ## What is in it
 
-**Storefront:** home, shop (filters, sort, search, pagination), product page (colour stock, reviews, JSON-LD), bag drawer and page, checkout (guest email-code or account, saved addresses, coupons, Razorpay or COD), order success/failed, favourites, login / sign-up with email verification / password reset, account (profile, addresses, orders, invoices, cancel), track order, about, contact, policy pages, sitemap and robots.
+**Storefront:** home, shop (filters, sort, search, pagination), product page (colour stock, reviews, JSON-LD), bag drawer and page, checkout (guest checkout with just an email, no account needed, or log in for saved addresses; coupons; prepaid with Razorpay), order success/failed, favourites, login / sign-up with email verification / password reset, account (profile, addresses, orders, invoices, cancel), track order, about, contact, policy pages, sitemap and robots.
 
 **Admin (`/admin`):** dashboard (revenue, 7-day chart, low stock, alerts), products (colours, stock, Cloudinary photo upload), orders (status flow, tracking, cancel with refund, invoice), customers, categories, coupons, contact messages, store settings.
+
+**Guest checkout:** nobody has to create an account. A guest enters an email and a delivery address, pays, and gets a private link in their emails to track the order and open the GST invoice. If they later sign up or log in with the same (verified) email, their earlier guest orders move into the account.
 
 **Payments & shipping:** prepaid orders only, paid through Razorpay (UPI, cards, net banking, wallets). Shipping is free on every order. Pincodes are validated at checkout against India Post and the city and state are filled in automatically.
 
@@ -73,14 +75,25 @@ npx prisma migrate deploy
 npm run db:seed
 ```
 
-### Razorpay webhook
+### Razorpay
 
-Point a webhook at `https://<your-domain>/api/webhooks/razorpay` for the `payment.captured` and `payment.failed` events and put its secret in `RAZORPAY_WEBHOOK_SECRET`. It confirms orders when a customer pays and then closes the tab.
+Set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` (use the `rzp_test_` keys while testing: the checkout then shows test-card instructions, and the live `rzp_live_` keys once the business is verified).
+
+What is wired up:
+- **Checkout:** the payment window opens on the order page with the customer's details filled in; a customer can retry a failed attempt inside it. If a payment has to leave the page (a bank's secure page, a UPI app), Razorpay posts the result to `/api/orders/callback`.
+- **Confirmation:** every payment is verified by signature and then checked with Razorpay for the right amount and for capture, before the order is marked paid and stock is taken.
+- **Resume:** a customer who closes the window can pay for the same order from the "Payment didn't go through" page or from the order in their account, without a second order. If the money did arrive, the order is simply confirmed.
+- **Admin:** each order links to the payment at Razorpay, and an unpaid order has a "Check payment with Razorpay" button.
+- **Refunds:** full (on cancellation) or partial (through Returns) refunds are sent to Razorpay and recorded with their reference.
+
+**Webhook (recommended):** in the Razorpay dashboard add a webhook to `https://<your-domain>/api/webhooks/razorpay` with the events `payment.captured`, `payment.failed`, `order.paid`, `refund.processed` and `refund.failed`, and put its secret in `RAZORPAY_WEBHOOK_SECRET`. It confirms an order when a customer pays and then closes the tab, and records refunds issued from the Razorpay dashboard.
+
+For live payments Razorpay requires the website domain to be added in the dashboard (Account & Settings, Website and app settings).
 
 ## Order and stock rules
 
 - Prices, coupons, shipping and stock are always recalculated on the server; the browser is never trusted.
-- Stock is reduced when an order is confirmed (COD at placement, online after payment verification) with a `stock >= quantity` guard, so it can never go negative. If two customers pay for the last piece, the second order is flagged "needs attention" on the dashboard.
+- Stock is reduced when an order is confirmed (after payment is verified) with a `stock >= quantity` guard, so it can never go negative. If two customers pay for the last piece, the second order is flagged "needs attention" on the dashboard.
 - Cancelling an order restores stock, releases the coupon and refunds online payments through Razorpay.
 
 ## Deploying

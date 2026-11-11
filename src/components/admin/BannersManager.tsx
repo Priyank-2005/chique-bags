@@ -83,7 +83,7 @@ export default function BannersManager({ banners }: { banners: BannerRow[] }) {
               <div><label className="label" htmlFor="bn-eye">Small heading above (optional)</label><input id="bn-eye" className="input" value={f.eyebrow} onChange={(e) => setF({ ...f, eyebrow: e.target.value })} /></div>
               <div><label className="label" htmlFor="bn-order">Order (lower shows first)</label><input id="bn-order" type="number" min={0} className="input" value={f.sortOrder} onChange={(e) => setF({ ...f, sortOrder: Number(e.target.value) })} /></div>
             </div>
-            <div><label className="label" htmlFor="bn-title">Headline (put *stars* around words to set them in italics)</label><input id="bn-title" required className="input" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></div>
+            <div><label className="label" htmlFor="bn-title">Headline (put *stars* around words to set them in italics)</label><input id="bn-title" className="input" placeholder="Leave empty if the picture already has its own words" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></div>
             <div><label className="label" htmlFor="bn-sub">Supporting text</label><textarea id="bn-sub" className="input min-h-20" value={f.subtitle} onChange={(e) => setF({ ...f, subtitle: e.target.value })} /></div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div><label className="label" htmlFor="bn-c1">Button text</label><input id="bn-c1" className="input" value={f.ctaText} onChange={(e) => setF({ ...f, ctaText: e.target.value })} /></div>
@@ -107,7 +107,7 @@ export default function BannersManager({ banners }: { banners: BannerRow[] }) {
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.isActive} onChange={(e) => setF({ ...f, isActive: e.target.checked })} className="accent-[#241f1a]" /> Show on the homepage</label>
           </div>
           <div className="space-y-4">
-            {imgBox("image", "Banner photo (wide, 16:9 works best)", "aspect-video")}
+            {imgBox("image", "Banner photo (wide; a picture with its own words is shown in full)", "aspect-video")}
             {imgBox("imageMobile", "Phone photo (optional, tall 4:5)", "aspect-[4/5] max-w-[200px]")}
           </div>
           <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => pick(e.target.files)} />
@@ -124,7 +124,7 @@ export default function BannersManager({ banners }: { banners: BannerRow[] }) {
               {!b.isActive && <span className="badge badge-dark absolute left-2 top-2">Hidden</span>}
             </div>
             <div className="flex items-center gap-3 p-4 text-sm">
-              <div className="min-w-0 flex-1"><p className="truncate font-semibold">{b.title.replace(/\*/g, "")}</p><p className="text-xs text-muted">Order {b.sortOrder}{b.ctaHref ? ` · ${b.ctaHref}` : ""}</p></div>
+              <div className="min-w-0 flex-1"><p className="truncate font-semibold">{b.title.replace(/\*/g, "") || "Picture banner"}</p><p className="text-xs text-muted">Order {b.sortOrder}{b.ctaHref ? ` · ${b.ctaHref}` : ""}</p></div>
               <button aria-label="Edit banner" className="grid h-9 w-9 place-items-center rounded-full hover:bg-blush" onClick={() => open(b)}><Pencil size={16} /></button>
               <button aria-label="Delete banner" className="grid h-9 w-9 place-items-center rounded-full hover:bg-blush hover:text-berry" onClick={async () => { if (confirm("Delete this banner?")) { await fetch(`/api/admin/banners/${b.id}`, { method: "DELETE" }); router.refresh(); } }}><Trash2 size={16} /></button>
             </div>

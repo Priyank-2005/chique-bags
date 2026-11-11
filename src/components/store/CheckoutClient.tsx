@@ -3,33 +3,24 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, CreditCard, Gift, Lock } from "lucide-react";
 import { useCart, useToast } from "@/components/providers";
 import CouponBox from "@/components/store/CouponBox";
 import PriceSummary from "@/components/store/PriceSummary";
 import { usePricing } from "@/components/store/usePricing";
+import { payWithRazorpay, preloadRazorpay, type PaymentSession } from "@/lib/razorpay-client";
 import { cn, formatINR } from "@/lib/utils";
+
+/** Razorpay wants a country code: turn 98765 43210 into +919876543210. */
+function toE164(phone: string): string {
+  const d = phone.replace(/[^\d+]/g, "");
+  if (d.startsWith("+")) return d;
+  return d.length === 10 ? `+91${d}` : d.length === 12 && d.startsWith("91") ? `+${d}` : d;
+}
 
 interface Addr { id?: string; name: string; phone: string; line1: string; line2: string; city: string; state: string; pincode: string }
 const EMPTY: Addr = { name: "", phone: "", line1: "", line2: "", city: "", state: "", pincode: "" };
-
-declare global {
-  interface Window {
-    Razorpay?: new (opts: Record<string, unknown>) => { open: () => void; on: (e: string, cb: () => void) => void };
-  }
-}
-
-function loadRazorpay(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (window.Razorpay) return resolve(true);
-    const s = document.createElement("script");
-    s.src = "https://checkout.razorpay.com/v1/checkout.js";
-    s.onload = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.body.appendChild(s);
-  });
-}
 
 interface Props {
   user: { id: string; name: string; email: string; phone: string | null } | null;
@@ -37,9 +28,13 @@ interface Props {
   gift: { enabled: boolean; fee: number; image: string };
   onlineAvailable: boolean;
   simulated: boolean;
+  testMode?: boolean;
 }
 
-export default function CheckoutClient({ user, addresses, gift, onlineAvailable, simulated }: Props) {
+/** The private link token that lets a guest back into their own order. Signed-in customers don't need one. */
+const guestQ = (token?: string | null) => (token ? `&t=${encodeURIComponent(token)}` : "");
+
+export default function CheckoutClient({ user, addresses, gift, onlineAvailable, simulated, testMode = false }: Props) {
   const cart = useCart();
   const toast = useToast();
   const router = useRouter();
@@ -53,17 +48,18 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
   const [giftNote, setGiftNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [testPay, setTestPay] = useState<{ orderId: string } | null>(null);
+  const [testPay, setTestPay] = useState<{ orderId: string; token: string | null } | null>(null);
+  // An order created here but not yet paid, so pressing the button again resumes it rather than creating a duplicate.
+  const pendingRef = useRef<{ sig: string; orderId: string; token: string | null } | null>(null);
 
   const { data, error } = usePricing(cart.items, coupon, cart.ready, giftBox);
 
-  // Guest verification state
-  const [gName, setGName] = useState("");
-  const [gEmail, setGEmail] = useState("");
-  const [gCode, setGCode] = useState("");
-  const [codeSent, setCodeSent] = useState(false);
-  const [gBusy, setGBusy] = useState(false);
-  const [gError, setGError] = useState<string | null>(null);
+  // Guests only give an email: no account and no verification code.
+  const [email, setEmail] = useState(user?.email ?? "");
+  const emailOk = Boolean(user) || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+
+  // Razorpay's script is slow on some connections: start fetching it as soon as checkout opens.
+  useEffect(() => { if (onlineAvailable && !simulated) preloadRazorpay(); }, [onlineAvailable, simulated]);
 
   useEffect(() => {
     if (user && form.name === "") setForm((f) => ({ ...f, name: user.name, phone: user.phone ?? f.phone }));
@@ -95,22 +91,48 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
     return { res, body: await res.json().catch(() => ({})) };
   }
 
-  async function sendCode() {
-    setGBusy(true);
-    setGError(null);
-    const { res, body } = await post("/api/auth/checkout/send-code", { email: gEmail });
-    setGBusy(false);
-    if (res.ok) setCodeSent(true);
-    else setGError(body.error ?? "Could not send the code");
+  function startPayment(session: PaymentSession) {
+    return payWithRazorpay(session, {
+      onSuccess: () => {
+        cart.clear();
+        router.push(`/order-success?id=${session.orderId}${guestQ(session.accessToken)}`);
+      },
+      onFailure: () => router.push(`/order-failed?id=${session.orderId}${guestQ(session.accessToken)}`),
+      onDismiss: () => {
+        setBusy(false);
+        setMessage("Your payment wasn't completed. Your order is saved: press the button again to finish paying.");
+      },
+      onLoadError: () => {
+        setBusy(false);
+        setMessage("Could not load the payment window. Check your connection and try again.");
+      },
+      onAttemptFailed: () => setMessage(null),
+    });
   }
 
-  async function verifyCode() {
-    setGBusy(true);
-    setGError(null);
-    const { res, body } = await post("/api/auth/checkout/verify-code", { email: gEmail, code: gCode, name: gName });
-    setGBusy(false);
-    if (res.ok) router.refresh();
-    else setGError(body.error ?? "That code didn't work");
+  interface PaymentReply { paid?: boolean; simulated?: boolean; orderId: string; orderNumber: string; accessToken?: string | null; razorpayOrderId: string; amount: number; currency: string; keyId: string; prefill?: PaymentSession["prefill"] }
+
+  async function continuePayment(b: PaymentReply, address: Addr) {
+    if (b.paid) {
+      cart.clear();
+      router.push(`/order-success?id=${b.orderId}${guestQ(user ? null : b.accessToken)}`);
+      return;
+    }
+    if (b.simulated) {
+      setBusy(false);
+      setTestPay({ orderId: b.orderId, token: user ? null : b.accessToken ?? null });
+      return;
+    }
+    await startPayment({
+      orderId: b.orderId,
+      orderNumber: b.orderNumber,
+      accessToken: user ? null : b.accessToken ?? null,
+      razorpayOrderId: b.razorpayOrderId,
+      amount: b.amount,
+      currency: b.currency,
+      keyId: b.keyId,
+      prefill: { ...(b.prefill ?? { name: address.name, email: user?.email ?? email.trim() }), contact: toE164(b.prefill?.contact ?? address.phone) },
+    });
   }
 
   async function placeOrder() {
@@ -118,9 +140,19 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
     const address = selected === "new" ? form : addresses.find((a) => a.id === selected)!;
     if (!address) return;
     setBusy(true);
+    const sig = JSON.stringify([cart.items.map((i) => [i.variantId, i.quantity]), address, data?.couponCode ?? null, data?.total ?? null, giftBox, giftBox ? giftNote : "", user ? null : email.trim().toLowerCase()]);
+
+    // Same bag, address and total as an unpaid order we already created? Resume that order.
+    if (pendingRef.current?.sig === sig) {
+      const r = await post(`/api/orders/${pendingRef.current.orderId}/pay`, { accessToken: pendingRef.current.token ?? undefined });
+      if (r.res.ok) return continuePayment(r.body, address);
+      pendingRef.current = null;
+    }
+
     const { res, body } = await post("/api/orders", {
       items: cart.items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
       address,
+      email: user ? undefined : email.trim(),
       couponCode: data?.couponCode ?? null,
       expectedTotal: data?.total,
       giftBox,
@@ -133,60 +165,22 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
       if (body.code === "PRICE_CHANGED") toast("Prices changed. Please review your new total.");
       return;
     }
+    pendingRef.current = { sig, orderId: body.orderId, token: user ? null : body.accessToken ?? null };
 
-    if (selected === "new" && saveAddress) {
+    if (user && selected === "new" && saveAddress) {
       fetch("/api/account/addresses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, isDefault: addresses.length === 0 }) }).catch(() => {});
     }
-
-    const done = (id: string) => {
-      cart.clear();
-      router.push(`/order-success?id=${id}`);
-    };
-    const failed = (id: string) => router.push(`/order-failed?id=${id}`);
-
-    if (body.simulated) {
-      setBusy(false);
-      setTestPay({ orderId: body.orderId });
-      return;
-    }
-
-    const loaded = await loadRazorpay();
-    if (!loaded || !window.Razorpay) {
-      setBusy(false);
-      setMessage("Could not load the payment window. Check your connection and try again.");
-      return;
-    }
-    const rzp = new window.Razorpay({
-      key: body.keyId,
-      amount: body.amount,
-      currency: body.currency,
-      name: "Chique Bags",
-      description: `Order ${body.orderNumber}`,
-      order_id: body.razorpayOrderId,
-      prefill: { name: address.name, email: user?.email, contact: address.phone },
-      theme: { color: "#b08d57" },
-      handler: async (r: { razorpay_payment_id: string; razorpay_signature: string }) => {
-        const v = await post("/api/orders/verify", { orderId: body.orderId, razorpayPaymentId: r.razorpay_payment_id, razorpaySignature: r.razorpay_signature });
-        if (v.res.ok) done(body.orderId);
-        else failed(body.orderId);
-      },
-      modal: { ondismiss: () => setBusy(false) },
-    });
-    rzp.on("payment.failed", () => {
-      post("/api/orders/verify", { orderId: body.orderId, failed: true });
-      failed(body.orderId);
-    });
-    rzp.open();
+    await continuePayment(body, address);
   }
 
   async function finishTestPayment(success: boolean) {
     if (!testPay) return;
     setBusy(true);
-    const v = await post("/api/orders/verify", success ? { orderId: testPay.orderId } : { orderId: testPay.orderId, failed: true });
+    const v = await post("/api/orders/verify", success ? { orderId: testPay.orderId, accessToken: testPay.token ?? undefined } : { orderId: testPay.orderId, accessToken: testPay.token ?? undefined, failed: true });
     if (success && v.res.ok) {
       cart.clear();
-      router.push(`/order-success?id=${testPay.orderId}`);
-    } else router.push(`/order-failed?id=${testPay.orderId}`);
+      router.push(`/order-success?id=${testPay.orderId}${guestQ(testPay.token)}`);
+    } else router.push(`/order-failed?id=${testPay.orderId}${guestQ(testPay.token)}`);
   }
 
   if (!cart.ready) return <div className="wrap min-h-[50vh] py-20" />;
@@ -200,7 +194,7 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
   }
 
   const addrValid = selected !== "new" || (pinState !== "invalid" && pinState !== "checking" && form.name.length > 1 && /^[+\d][\d\s-]{8,16}$/.test(form.phone) && form.line1.length > 2 && form.city.length > 1 && form.state.length > 1 && /^\d{6}$/.test(form.pincode));
-  const ready = Boolean(user) && onlineAvailable && addrValid && Boolean(data) && !error;
+  const ready = emailOk && onlineAvailable && addrValid && Boolean(data) && !error;
 
   return (
     <div className="wrap py-10 lg:py-14">
@@ -213,33 +207,19 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
             {user ? (
               <p className="flex items-center gap-2 text-sm"><CheckCircle2 size={18} className="text-emerald-600" /> Signed in as <strong>{user.name}</strong> ({user.email})</p>
             ) : (
-              <div className="space-y-4">
-                <p className="text-sm text-muted">Verify your email to place your order, no password needed. Already have an account? <Link href="/login?next=/checkout" className="font-semibold text-ink underline">Log in</Link></p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div><label className="label" htmlFor="g-name">Full name</label><input id="g-name" className="input" value={gName} onChange={(e) => setGName(e.target.value)} autoComplete="name" /></div>
-                  <div><label className="label" htmlFor="g-email">Email</label><input id="g-email" type="email" className="input" value={gEmail} onChange={(e) => setGEmail(e.target.value)} autoComplete="email" disabled={codeSent} /></div>
+              <div className="space-y-3">
+                <div>
+                  <label className="label" htmlFor="c-email">Email</label>
+                  <input id="c-email" type="email" inputMode="email" autoComplete="email" className="input" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <p className="mt-2 text-xs text-muted">We&apos;ll send your order confirmation and a tracking link here.</p>
                 </div>
-                {codeSent && (
-                  <div>
-                    <label className="label" htmlFor="g-code">6-digit code sent to {gEmail}</label>
-                    <input id="g-code" inputMode="numeric" maxLength={6} className="input max-w-[200px] text-center text-xl tracking-[0.4em]" value={gCode} onChange={(e) => setGCode(e.target.value.replace(/\D/g, ""))} />
-                  </div>
-                )}
-                {gError && <p className="text-sm font-medium text-berry">{gError}</p>}
-                {!codeSent ? (
-                  <button className="btn btn-dark btn-sm" disabled={gBusy || gName.trim().length < 2 || !gEmail.includes("@")} onClick={sendCode}>{gBusy ? "Sending…" : "Email me a code"}</button>
-                ) : (
-                  <div className="flex gap-3">
-                    <button className="btn btn-dark btn-sm" disabled={gBusy || gCode.length !== 6} onClick={verifyCode}>{gBusy ? "Checking…" : "Verify & continue"}</button>
-                    <button className="btn btn-line btn-sm" onClick={() => { setCodeSent(false); setGCode(""); }}>Change email</button>
-                  </div>
-                )}
+                <p className="text-sm text-muted">No account needed. Already have one? <Link href="/login?next=/checkout" className="font-semibold text-ink underline">Log in</Link> to use your saved addresses.</p>
               </div>
             )}
           </section>
 
           {/* 2. Address */}
-          <section className={cn("card p-6 transition", !user && "pointer-events-none opacity-50")}>
+          <section className="card p-6">
             <h2 className="mb-4 flex items-center gap-3 font-serif text-xl font-semibold"><span className="grid h-7 w-7 place-items-center rounded-full bg-ink text-sm text-white">2</span> Delivery address</h2>
             <div className="space-y-3">
               {addresses.map((a) => (
@@ -263,14 +243,14 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
                 <div><label className="label" htmlFor="a-city">City</label><input id="a-city" className="input" value={form.city} onChange={set("city")} autoComplete="address-level2" /></div>
                 <div><label className="label" htmlFor="a-state">State</label><input id="a-state" className="input" value={form.state} onChange={set("state")} autoComplete="address-level1" /></div>
                 <div><label className="label" htmlFor="a-pin">Pincode</label><input id="a-pin" inputMode="numeric" maxLength={6} className="input" value={form.pincode} onChange={onPincode} autoComplete="postal-code" aria-invalid={pinState === "invalid"} />{pinState === "invalid" && <p className="mt-1.5 text-xs font-medium text-berry">We couldn't find this pincode. Please check it.</p>}{pinState === "checking" && <p className="mt-1.5 text-xs text-muted">Checking pincode…</p>}{pinState === "ok" && <p className="mt-1.5 text-xs text-emerald-700">Pincode verified</p>}</div>
-                <label className="flex items-center gap-2 self-end pb-3 text-sm"><input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} className="accent-[#241f1a]" /> Save for next time</label>
+                {user && <label className="flex items-center gap-2 self-end pb-3 text-sm"><input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} className="accent-[#241f1a]" /> Save for next time</label>}
               </div>
             )}
           </section>
 
           {/* 3. Gift options */}
           {gift.enabled && (
-            <section className={cn("card p-6 transition", !user && "pointer-events-none opacity-50")}>
+            <section className="card p-6">
               <h2 className="mb-4 flex items-center gap-3 font-serif text-xl font-semibold"><span className="grid h-7 w-7 place-items-center rounded-full bg-ink text-sm text-white">3</span> Gift options</h2>
               <label className={cn("flex cursor-pointer items-start gap-4 rounded-sm border-[1.5px] p-4", giftBox ? "border-ink bg-cream" : "border-[#e3d8c6]")}>
                 <input type="checkbox" className="mt-1 h-4 w-4 accent-[#241f1a]" checked={giftBox} onChange={(e) => setGiftBox(e.target.checked)} />
@@ -291,7 +271,7 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
           )}
 
           {/* 4. Payment */}
-          <section className={cn("card p-6 transition", !user && "pointer-events-none opacity-50")}>
+          <section className="card p-6">
             <h2 className="mb-4 flex items-center gap-3 font-serif text-xl font-semibold"><span className="grid h-7 w-7 place-items-center rounded-full bg-ink text-sm text-white">{gift.enabled ? 4 : 3}</span> Payment</h2>
             <div className="space-y-3">
               {onlineAvailable ? (
@@ -299,7 +279,13 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
                   <CreditCard size={18} className="mt-0.5 shrink-0" />
                   <span><span className="block font-semibold">Pay securely online</span><span className="text-muted">UPI, cards, net banking and wallets through Razorpay. We accept prepaid orders only.{simulated && " (Test mode: no real payment.)"}</span></span>
                 </div>
-              ) : (
+              ) : null}
+              {onlineAvailable && testMode ? (
+                <p className="border border-dashed border-[#d6c8ad] bg-blush p-4 text-xs leading-relaxed text-muted">
+                  <strong className="text-ink">Test mode.</strong> No real money is charged. Pay with card 4111 1111 1111 1111 (any future expiry, any CVV, and any OTP), or with the UPI ID success@razorpay.
+                </p>
+              ) : null}
+              {onlineAvailable ? null : (
                 <p className="border border-line bg-blush p-4 text-sm text-berry">Online payment isn't available right now. Please try again shortly.</p>
               )}
             </div>
@@ -328,7 +314,7 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
           <button className="btn btn-dark btn-block !py-4" disabled={!ready || busy} onClick={placeOrder}>
             <Lock size={15} /> {busy ? "Please wait…" : `Pay ${data ? formatINR(data.total) : ""}`}
           </button>
-          {!user && <p className="text-center text-xs text-muted">Verify your email above to continue.</p>}
+          {!user && !emailOk && <p className="text-center text-xs text-muted">Enter your email above to continue.</p>}
           <p className="text-center text-xs text-muted">By placing your order you agree to our <Link href="/terms" className="underline">terms</Link> and <Link href="/returns" className="underline">exchange policy</Link>.</p>
         </aside>
       </div>

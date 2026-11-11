@@ -3,20 +3,22 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { CheckCircle2 } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
+import { accessWhere, guestQuery, orderPath } from "@/lib/order-access";
 import { prisma } from "@/lib/db";
 import { formatINR } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Order placed", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
-export default async function OrderSuccessPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
-  const { id } = await searchParams;
+export default async function OrderSuccessPage({ searchParams }: { searchParams: Promise<{ id?: string; t?: string }> }) {
+  const { id, t } = await searchParams;
   const user = await getSessionUser();
-  if (!user) redirect("/login");
-  if (!id) notFound();
-  const order = await prisma.order.findFirst({ where: { id, userId: user.id }, include: { items: true } });
+  const access = accessWhere(user, t);
+  if (!id || !access) notFound();
+  const order = await prisma.order.findFirst({ where: { id, ...access }, include: { items: true } });
   if (!order) notFound();
-  if (order.paymentMethod === "ONLINE" && order.paymentStatus !== "PAID") redirect(`/order-failed?id=${order.id}`);
+  const guest = !order.userId;
+  if (order.paymentMethod === "ONLINE" && order.paymentStatus !== "PAID") redirect(`/order-failed?id=${order.id}${guestQuery(guest ? t : null)}`);
 
   return (
     <div className="wrap max-w-2xl py-16 text-center">
@@ -47,9 +49,18 @@ export default async function OrderSuccessPage({ searchParams }: { searchParams:
       </div>
 
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <Link href={`/account/orders/${order.id}`} className="btn btn-dark">View order</Link>
+        <Link href={orderPath(order)} className="btn btn-dark">{guest ? "Track your order" : "View order"}</Link>
         <Link href="/shop" className="btn btn-line">Continue shopping</Link>
       </div>
+      {guest && (
+        <div className="card mt-10 p-6 text-left">
+          <h2 className="font-serif text-xl font-semibold">Want it even easier next time?</h2>
+          <p className="mt-1 text-sm text-muted">
+            Create an account with {order.customerEmail} to keep this order, save your address and check out in a few taps. You can also track this order any time from the link in your confirmation email.
+          </p>
+          <Link href={`/signup?email=${encodeURIComponent(order.customerEmail)}`} className="btn btn-line btn-sm mt-4">Create an account</Link>
+        </div>
+      )}
     </div>
   );
 }

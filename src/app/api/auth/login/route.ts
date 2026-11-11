@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { fail, limit, ok, parseBody } from "@/lib/api";
 import { loginCustomer } from "@/lib/auth";
+import { claimGuestOrders } from "@/lib/order-access";
 import { emailSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
@@ -26,5 +27,6 @@ export async function POST(req: Request) {
     return fail("Incorrect email or password.", 401);
   }
   await loginCustomer(user.id);
+  if (user.emailVerified) void claimGuestOrders(user.id, user.email).catch(() => {});
   return ok({ ok: true, user: { id: user.id, name: user.name, email: user.email } });
 }

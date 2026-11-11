@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import CheckoutClient from "@/components/store/CheckoutClient";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { isGatewayConfigured, isSimulatedPaymentAllowed } from "@/lib/razorpay";
+import { isGatewayConfigured, isSimulatedPaymentAllowed, isTestMode } from "@/lib/razorpay";
 import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "Checkout", robots: { index: false } };
@@ -20,6 +20,7 @@ export default async function CheckoutPage() {
       gift={{ enabled: settings.giftBoxEnabled, fee: settings.giftBoxFee, image: settings.giftBoxImage }}
       onlineAvailable={isGatewayConfigured() || isSimulatedPaymentAllowed()}
       simulated={isSimulatedPaymentAllowed()}
+      testMode={isGatewayConfigured() && isTestMode()}
     />
   );
 }

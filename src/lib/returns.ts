@@ -52,7 +52,7 @@ async function nextReturnNumber(tx: Tx): Promise<string> {
 
 export interface CreateReturnInput {
   order: Order & { items: OrderItem[] };
-  userId: string;
+  userId: string | null;
   reason: ReturnReason;
   details: string;
   photos: string[];

@@ -1,7 +1,8 @@
 import { Prisma, type Order, type OrderItem } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { getRazorpay, isGatewayConfigured, isSimulatedPaymentAllowed } from "@/lib/razorpay";
+import { accessWhere, newAccessToken } from "@/lib/order-access";
+import { findPaidPayment, getKeyId, getRazorpay, isGatewayConfigured, isSimulatedPaymentAllowed } from "@/lib/razorpay";
 import { sendOrderCancelled, sendOrderConfirmation, sendOwnerNewOrder } from "@/lib/emails";
 import { ensureInvoiceNumber } from "@/lib/gst";
 import { lookupPincode } from "@/lib/pincode";
@@ -46,7 +47,7 @@ export type PriceResult =
 /** The server is the only source of truth for prices, discounts, shipping and stock. */
 export async function priceCart(
   items: CartLineInput[],
-  opts: { couponCode?: string | null; userId?: string | null; giftBox?: boolean } = {}
+  opts: { couponCode?: string | null; userId?: string | null; email?: string | null; giftBox?: boolean } = {}
 ): Promise<PriceResult> {
   const merged = new Map<string, number>();
   for (const it of items) merged.set(it.variantId, (merged.get(it.variantId) ?? 0) + it.quantity);
@@ -94,7 +95,7 @@ export async function priceCart(
   let couponCode: string | null = null;
   let couponError: string | null = null;
   if (opts.couponCode) {
-    const res = await evaluateCoupon(opts.couponCode, subtotal, opts.userId ?? null);
+    const res = await evaluateCoupon(opts.couponCode, subtotal, opts.userId ?? null, opts.email ?? null);
     if (res.ok) {
       discount = res.discount;
       couponCode = res.code;
@@ -124,7 +125,8 @@ export async function priceCart(
 export async function evaluateCoupon(
   rawCode: string,
   subtotal: number,
-  userId: string | null
+  userId: string | null,
+  email: string | null = null
 ): Promise<{ ok: true; code: string; discount: number } | { ok: false; error: string }> {
   const code = rawCode.trim().toUpperCase();
   const coupon = await prisma.coupon.findUnique({ where: { code } });
@@ -132,8 +134,9 @@ export async function evaluateCoupon(
   if (coupon.expiresAt && coupon.expiresAt < new Date()) return { ok: false, error: "This coupon has expired." };
   if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) return { ok: false, error: "This coupon has been fully redeemed." };
   if (subtotal < coupon.minOrder) return { ok: false, error: `Add items worth ₹${coupon.minOrder.toLocaleString("en-IN")} or more to use this coupon.` };
-  if (coupon.oncePerUser && userId) {
-    const used = await prisma.couponRedemption.count({ where: { couponId: coupon.id, userId } });
+  if (coupon.oncePerUser && (userId || email)) {
+    const who = [...(userId ? [{ userId }] : []), ...(email ? [{ email: { equals: email.trim().toLowerCase(), mode: "insensitive" as const } }] : [])];
+    const used = await prisma.couponRedemption.count({ where: { couponId: coupon.id, OR: who } });
     if (used > 0) return { ok: false, error: "You've already used this coupon." };
   }
   let discount = coupon.type === "PERCENTAGE" ? Math.floor((subtotal * coupon.value) / 100) : coupon.value;
@@ -181,12 +184,12 @@ async function redeemCoupon(tx: Tx, order: Order) {
   if (!order.couponCode) return;
   const coupon = await tx.coupon.findUnique({ where: { code: order.couponCode } });
   if (!coupon) return;
-  await tx.couponRedemption.create({ data: { couponId: coupon.id, userId: order.userId, orderId: order.id } });
+  await tx.couponRedemption.create({ data: { couponId: coupon.id, userId: order.userId, email: order.customerEmail.toLowerCase(), orderId: order.id } });
   await tx.coupon.update({ where: { id: coupon.id }, data: { usedCount: { increment: 1 } } });
 }
 
 export interface CreateOrderInput {
-  userId: string;
+  userId?: string | null; // empty for a guest
   name: string;
   email: string;
   phone: string;
@@ -203,6 +206,7 @@ export type CreateOrderResult =
       ok: true;
       orderId: string;
       orderNumber: string;
+      accessToken: string;
       method: "ONLINE";
       razorpayOrderId?: string;
       amountPaise?: number;
@@ -219,7 +223,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   if (input.giftBox && !settings.giftBoxEnabled) {
     return { ok: false, status: 400, error: "Gift boxes aren't available right now." };
   }
-  const priced = await priceCart(input.items, { couponCode: input.couponCode, userId: input.userId, giftBox: input.giftBox });
+  const priced = await priceCart(input.items, { couponCode: input.couponCode, userId: input.userId, email: input.email, giftBox: input.giftBox });
 
   if (!priced.ok) return { ok: false, status: 409, error: priced.error, code: priced.code };
   if (priced.couponError) return { ok: false, status: 400, error: priced.couponError, code: "COUPON" };
@@ -242,12 +246,14 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     pincode: addr.pincode,
   };
 
+  const accessToken = newAccessToken();
   const order = await prisma.$transaction(async (tx) => {
     const orderNumber = await nextOrderNumber(tx);
     return tx.order.create({
       data: {
         orderNumber,
-        userId: input.userId,
+        userId: input.userId ?? null,
+        accessToken,
         status: "PENDING",
         subtotal: priced.subtotal,
         mrpTotal: priced.mrpTotal,
@@ -288,7 +294,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   let simulated = false;
   if (rp) {
     try {
-      const rpOrder = await rp.orders.create({ amount: amountPaise, currency: "INR", receipt: order.orderNumber });
+      const rpOrder = await rp.orders.create({ amount: amountPaise, currency: "INR", receipt: order.orderNumber, notes: { order: order.orderNumber, customer: input.email } });
       razorpayOrderId = rpOrder.id;
     } catch (err) {
       console.error("Razorpay order creation failed", err);
@@ -300,7 +306,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     simulated = true;
   }
   await prisma.order.update({ where: { id: order.id }, data: { razorpayOrderId } });
-  return { ok: true, orderId: order.id, orderNumber: order.orderNumber, method: "ONLINE", razorpayOrderId, amountPaise, simulated };
+  return { ok: true, orderId: order.id, orderNumber: order.orderNumber, accessToken, method: "ONLINE", razorpayOrderId, amountPaise, simulated };
 }
 
 /**
@@ -384,6 +390,7 @@ export async function cancelOrder(orderId: string, opts: { by: "customer" | "adm
 
   let refundNote: string | undefined;
   let paymentStatus = order.paymentStatus;
+  let refundedAmount = order.refundedAmount;
   let needsAttention = order.needsAttention;
   let notes = order.notes;
 
@@ -393,6 +400,7 @@ export async function cancelOrder(orderId: string, opts: { by: "customer" | "adm
       try {
         await rp.payments.refund(order.razorpayPaymentId, { amount: order.total * 100, speed: "normal" });
         paymentStatus = "REFUNDED";
+        refundedAmount = order.total;
         refundNote = "Your payment will be refunded to the original payment method within 5-7 working days.";
       } catch (err) {
         console.error("Refund failed", err);
@@ -423,6 +431,7 @@ export async function cancelOrder(orderId: string, opts: { by: "customer" | "adm
         cancelledAt: new Date(),
         stockDeducted: false,
         paymentStatus,
+        refundedAmount,
         needsAttention,
         notes: [notes, opts.reason ? `Cancelled: ${opts.reason}` : null].filter(Boolean).join(" | ") || null,
       },
@@ -431,4 +440,98 @@ export async function cancelOrder(orderId: string, opts: { by: "customer" | "adm
 
   void sendOrderCancelled(order, refundNote);
   return { ok: true };
+}
+
+export type PaymentSessionResult =
+  | { ok: true; paid: true; orderId: string }
+  | { ok: true; paid: false; simulated: true; orderId: string }
+  | {
+      ok: true;
+      paid: false;
+      simulated: false;
+      orderId: string;
+      orderNumber: string;
+      accessToken: string | null;
+      razorpayOrderId: string;
+      amount: number;
+      currency: "INR";
+      keyId: string;
+      prefill: { name: string; email: string; contact: string };
+    }
+  | { ok: false; status: number; error: string };
+
+/**
+ * Lets a customer pay for an order that is still unpaid (their window was closed, or a payment failed),
+ * without creating a second order. If Razorpay already shows the order as paid, it is confirmed instead.
+ */
+export async function getPaymentSession(orderId: string, who: { userId?: string | null; token?: string | null }): Promise<PaymentSessionResult> {
+  const access = accessWhere(who.userId ? { id: who.userId } : null, who.token);
+  if (!access) return { ok: false, status: 404, error: "Order not found." };
+  const order = await prisma.order.findFirst({ where: { id: orderId, paymentMethod: "ONLINE", ...access }, include: { items: true } });
+  if (!order || !order.razorpayOrderId) return { ok: false, status: 404, error: "Order not found." };
+  if (order.paymentStatus === "PAID" || order.paymentStatus === "PARTIALLY_REFUNDED" || order.paymentStatus === "REFUNDED") return { ok: true, paid: true, orderId: order.id };
+  if (order.status === "CANCELLED") return { ok: false, status: 409, error: "This order was cancelled." };
+
+  if (order.razorpayOrderId.startsWith("sim_")) {
+    if (!isSimulatedPaymentAllowed()) return { ok: false, status: 400, error: "Invalid payment." };
+    return { ok: true, paid: false, simulated: true, orderId: order.id };
+  }
+
+  const rp = getRazorpay();
+  if (!rp) return { ok: false, status: 503, error: "Online payment is not available right now. Please try again later." };
+
+  // Did the customer actually pay already? (For example the tab closed before we heard back.)
+  try {
+    const paidId = await findPaidPayment(order.razorpayOrderId, order.total);
+    if (paidId) {
+      await confirmOnlinePayment(order.id, paidId);
+      return { ok: true, paid: true, orderId: order.id };
+    }
+  } catch (err) {
+    console.error("Could not check Razorpay for an earlier payment", err);
+  }
+
+  // Everything must still be in stock before we ask for money again.
+  const variantIds = order.items.map((i) => i.variantId).filter((v): v is string => Boolean(v));
+  const variants = await prisma.productVariant.findMany({ where: { id: { in: variantIds } }, include: { product: { select: { isActive: true } } } });
+  for (const item of order.items) {
+    const v = variants.find((x) => x.id === item.variantId);
+    if (!v || !v.product.isActive || v.stock < item.quantity) {
+      return { ok: false, status: 409, error: `${item.name} is no longer available in that quantity. Please review your bag and place a new order.` };
+    }
+  }
+
+  const params = {
+    ok: true as const,
+    paid: false as const,
+    simulated: false as const,
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    accessToken: order.accessToken,
+    razorpayOrderId: order.razorpayOrderId,
+    amount: order.total * 100,
+    currency: "INR" as const,
+    keyId: getKeyId(),
+    prefill: { name: order.customerName, email: order.customerEmail, contact: /^\d{10}$/.test(order.customerPhone.replace(/\D/g, "")) ? `+91${order.customerPhone.replace(/\D/g, "")}` : order.customerPhone },
+  };
+  return params;
+}
+
+/** Admin: ask Razorpay about an unpaid order and confirm it if the money did arrive. */
+export async function syncOrderPayment(orderId: string): Promise<{ ok: boolean; message: string }> {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order || !order.razorpayOrderId) return { ok: false, message: "Order not found." };
+  if (order.paymentStatus === "PAID") return { ok: true, message: "This order is already marked as paid." };
+  if (order.razorpayOrderId.startsWith("sim_")) return { ok: false, message: "This was a test payment: there is nothing to check with Razorpay." };
+  const rp = getRazorpay();
+  if (!rp) return { ok: false, message: "Razorpay is not connected." };
+  try {
+    const paidId = await findPaidPayment(order.razorpayOrderId, order.total);
+    if (!paidId) return { ok: true, message: "Razorpay shows no successful payment for this order." };
+    await confirmOnlinePayment(order.id, paidId);
+    return { ok: true, message: "Payment found at Razorpay. The order is now confirmed." };
+  } catch (err) {
+    console.error("syncOrderPayment failed", err);
+    return { ok: false, message: "Could not reach Razorpay. Please try again in a moment." };
+  }
 }

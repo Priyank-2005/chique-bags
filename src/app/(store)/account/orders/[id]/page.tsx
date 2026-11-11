@@ -1,3 +1,4 @@
+import PayNowButton from "@/components/store/PayNowButton";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -70,6 +71,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             {order.giftBox && <div className="flex justify-between"><span className="text-muted">Gift box &amp; note</span><span>{order.giftFee ? formatINR(order.giftFee) : "Free"}</span></div>}
             <div className="flex justify-between border-t border-line pt-3 text-base font-semibold"><span>Total</span><span>{formatINR(order.total)}</span></div>
             <p className="pt-1 text-xs text-muted">{order.paymentStatus === "REFUNDED" ? "Refunded in full" : order.paymentStatus === "PARTIALLY_REFUNDED" ? `Paid online · ${formatINR(order.refundedAmount)} refunded` : paid ? "Paid online" : "Awaiting payment"}</p>
+            {order.paymentMethod === "ONLINE" && order.status !== "CANCELLED" && (order.paymentStatus === "UNPAID" || order.paymentStatus === "FAILED") && (
+              <div className="flex flex-wrap pt-2"><PayNowButton orderId={order.id} label={`Pay ${formatINR(order.total)}`} className="btn btn-dark btn-sm" /></div>
+            )}
           </section>
           <section className="card p-6 text-sm">
             <h3 className="mb-2 font-serif text-lg font-semibold">Delivering to</h3>

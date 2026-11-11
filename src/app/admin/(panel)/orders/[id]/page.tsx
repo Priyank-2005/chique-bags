@@ -1,3 +1,4 @@
+import SyncPaymentButton from "@/components/admin/SyncPaymentButton";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -97,7 +98,14 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ i
             <h2 className="mb-2 font-serif text-lg font-semibold">Payment</h2>
             <p>Online (Razorpay)</p>
             <p className="text-muted">Status: {order.paymentStatus.toLowerCase().replace("_", " ")}{order.paidAt && ` · ${formatDate(order.paidAt, true)}`}</p>
-            {order.razorpayPaymentId && <p className="break-all text-xs text-muted">Payment ID: {order.razorpayPaymentId}</p>}
+            {order.razorpayPaymentId && (
+              <p className="break-all text-xs text-muted">
+                Payment ID: {order.razorpayPaymentId}
+                {!order.razorpayPaymentId.startsWith("sim_") && <> · <a className="underline" target="_blank" rel="noreferrer" href={`https://dashboard.razorpay.com/app/payments/${order.razorpayPaymentId}`}>View at Razorpay</a></>}
+              </p>
+            )}
+            {order.refundedAmount > 0 && <p className="text-xs text-muted">Refunded: {formatINR(order.refundedAmount)}</p>}
+            {order.paymentMethod === "ONLINE" && order.status !== "CANCELLED" && (order.paymentStatus === "UNPAID" || order.paymentStatus === "FAILED") && <SyncPaymentButton orderId={order.id} />}
           </section>
         </div>
       </div>

@@ -206,7 +206,8 @@ model Review {
 model Order {
   id              String        @id @default(cuid())
   orderNumber     String        @unique // CB-26-00001
-  userId          String
+  userId          String? // empty for guest orders
+  accessToken     String?       @unique // lets a guest see their own order from the link in their emails
   status          OrderStatus   @default(PENDING)
   subtotal        Int // at selling price
   mrpTotal        Int // at MRP
@@ -241,7 +242,7 @@ model Order {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  user  User        @relation(fields: [userId], references: [id])
+  user  User?       @relation(fields: [userId], references: [id])
   items   OrderItem[]
   returns ReturnRequest[]
 
@@ -300,13 +301,15 @@ model Coupon {
 model CouponRedemption {
   id        String   @id @default(cuid())
   couponId  String
-  userId    String
+  userId    String? // empty for guest orders
+  email     String? // lets a once-per-customer coupon apply to guests too
   orderId   String
   createdAt DateTime @default(now())
 
   coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
 
   @@index([couponId, userId])
+  @@index([couponId, email])
   @@map("coupon_redemptions")
 }
 
@@ -383,7 +386,7 @@ model ReturnRequest {
   id              String       @id @default(cuid())
   number          String       @unique // RR-26-0001
   orderId         String
-  userId          String
+  userId          String?
   reason          ReturnReason
   details         String       @db.Text
   photos          String[]
