@@ -17,7 +17,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <main id="main">{children}</main>
       <Footer settings={settings} categories={categories} picks={picks} />
       <CartDrawer />
-      <WhatsAppButton number={settings.whatsapp} />
+      <WhatsAppButton numbers={settings.whatsappNumbers} />
     </Providers>
   );
 }

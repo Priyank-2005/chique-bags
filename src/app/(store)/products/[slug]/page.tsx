@@ -2,14 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ChevronDown, Gift, RotateCcw, ShieldCheck, Star, Truck } from "lucide-react";
-import { WhatsAppIcon } from "@/components/icons";
 import ProductBuyBox from "@/components/store/ProductBuyBox";
 import ProductCard from "@/components/store/ProductCard";
+import { ProductColourProvider } from "@/components/store/ProductColour";
 import ProductGallery from "@/components/store/ProductGallery";
 import ReviewForm from "@/components/store/ReviewForm";
+import WhatsAppLinks from "@/components/store/WhatsAppLinks";
 import { getSessionUser } from "@/lib/auth";
 import { cardInclude, toCard } from "@/lib/catalog";
 import { prisma } from "@/lib/db";
+import { allPhotos, coverPhoto } from "@/lib/product-images";
 import { getSettings } from "@/lib/settings";
 import { appUrl, discountPercent, formatDate, formatINR } from "@/lib/utils";
 
@@ -31,7 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: p.name,
     description,
     alternates: { canonical: `/products/${p.slug}` },
-    openGraph: { title: p.name, description, type: "website", images: p.images[0] ? [{ url: p.images[0] }] : undefined },
+    openGraph: { title: p.name, description, type: "website", images: coverPhoto(p) ? [{ url: coverPhoto(p)! }] : undefined },
   };
 }
 
@@ -57,7 +59,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    image: product.images,
+    image: allPhotos(product),
     description: product.shortDescription ?? product.description ?? undefined,
     category: product.category.name,
     brand: { "@type": "Brand", name: "Chique Bags" },
@@ -75,7 +77,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     { title: "Description", body: product.description },
     { title: "Details", list: [...product.features, product.material && `Material: ${product.material}`, product.dimensions && `Size: ${product.dimensions}`].filter(Boolean) as string[] },
     { title: "Care", body: product.careInstructions },
-    { title: "Shipping & exchange", body: "Free shipping on every order. Delivered in 3–5 working days across India. If your bag arrives damaged or defective, report it within 7 days for an exchange or refund." },
+    { title: "Shipping & exchange", body: "Free shipping on every order. Delivered in 8–10 business days across India. If your bag arrives damaged or defective, report it within 2 days of delivery for exchange." },
   ].filter((d) => d.body || d.list?.length);
 
   return (
@@ -86,8 +88,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <Link href={`/shop?category=${product.category.slug}`} className="hover:text-rose">{product.category.name}</Link>
       </nav>
 
+      <ProductColourProvider initialId={(product.variants.find((v) => v.stock > 0) ?? product.variants[0])?.id}>
       <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
-        <div className="min-w-0"><ProductGallery images={product.images} name={product.name} /></div>
+        <div className="min-w-0">
+          <ProductGallery images={product.images.length > 0 ? product.images : allPhotos(product)} variants={product.variants.map((v) => ({ id: v.id, name: v.name, images: v.images }))} name={product.name} />
+        </div>
 
         <div className="min-w-0 lg:sticky lg:top-28 lg:self-start">
           <p className="eyebrow">{product.category.name}</p>
@@ -108,25 +113,20 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
           <div className="mt-7">
             <ProductBuyBox
-              product={{ id: product.id, slug: product.slug, name: product.name, price: product.price, mrp, image: product.images[0] ?? null }}
-              variants={product.variants.map((v) => ({ id: v.id, name: v.name, hex: v.hex, stock: v.stock }))}
+              product={{ id: product.id, slug: product.slug, name: product.name, price: product.price, mrp, image: coverPhoto(product) }}
+              variants={product.variants.map((v) => ({ id: v.id, name: v.name, hex: v.hex, stock: v.stock, images: v.images }))}
             />
           </div>
 
-          {settings.whatsapp && (
-            <a
-              href={`https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(`Hi Chique Bags, I'd like to know more about ${product.name} (${formatINR(product.price)}): ${appUrl(`/products/${product.slug}`)}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 flex items-center justify-center gap-2.5 border border-[#25D366] py-3.5 text-[0.72rem] font-medium uppercase tracking-[0.2em] text-[#128C7E] transition hover:bg-[#25D366] hover:text-white"
-            >
-              <WhatsAppIcon size={18} /> Enquire about this bag on WhatsApp
-            </a>
-          )}
+          <WhatsAppLinks
+            numbers={settings.whatsappNumbers}
+            heading="Enquire about this bag on WhatsApp"
+            message={`Hi Chique Bags, I'd like to know more about ${product.name} (${formatINR(product.price)}): ${appUrl(`/products/${product.slug}`)}`}
+          />
 
           <ul className="mt-8 grid gap-3 rounded-sm bg-cream p-5 text-sm">
-            <li className="flex items-center gap-3"><Truck size={18} className="text-rose" /> Free shipping on every order · Delivered in 3–5 days</li>
-            <li className="flex items-center gap-3"><RotateCcw size={18} className="text-rose" /> Damaged or defective? Refund or exchange within 7 days</li>
+            <li className="flex items-center gap-3"><Truck size={18} className="text-rose" /> Free shipping on every order · Delivered in 8–10 business days</li>
+            <li className="flex items-center gap-3"><RotateCcw size={18} className="text-rose" /> Damaged or defective? Report it within 2 days of delivery for exchange</li>
             {settings.giftBoxEnabled && <li className="flex items-center gap-3"><Gift size={18} className="text-rose" /> <span>Make it a gift: add a gift box &amp; note at checkout{settings.giftBoxFee > 0 ? ` (${formatINR(settings.giftBoxFee)})` : ""} · <Link href="/gifting" className="underline">Learn more</Link></span></li>}
             <li className="flex items-center gap-3"><ShieldCheck size={18} className="text-rose" /> Secure prepaid payment · UPI, cards, net banking</li>
           </ul>
@@ -144,6 +144,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
       </div>
+      </ProductColourProvider>
 
       <section id="reviews" className="mt-20 max-w-3xl scroll-mt-28">
         <h2 className="h-display text-3xl">Reviews</h2>

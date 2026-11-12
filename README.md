@@ -11,15 +11,15 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQ
 
 ## What is in it
 
-**Storefront:** home, shop (filters, sort, search, pagination), product page (colour stock, reviews, JSON-LD), bag drawer and page, checkout (guest checkout with just an email, no account needed, or log in for saved addresses; coupons; prepaid with Razorpay), order success/failed, favourites, login / sign-up with email verification / password reset, account (profile, addresses, orders, invoices, cancel), track order, about, contact, policy pages, sitemap and robots.
+**Storefront:** home, shop (filters, sort, search, pagination), product page (photos that follow the chosen colour, colour stock, reviews, JSON-LD), bag drawer and page, checkout (guest checkout with just an email, no account needed, or log in for saved addresses; coupons; prepaid with Razorpay), order success/failed, favourites, login / sign-up with email verification / password reset, account (profile, addresses, orders, invoices, cancel), track order, about, contact, policy pages, sitemap and robots.
 
-**Admin (`/admin`):** dashboard (revenue, 7-day chart, low stock, alerts), products (colours, stock, Cloudinary photo upload), orders (status flow, tracking, cancel with refund, invoice), customers, categories, coupons, contact messages, store settings.
+**Admin (`/admin`):** dashboard (revenue, 7-day chart, low stock, alerts), products (colours with their own photos, stock, Cloudinary photo upload), orders (status flow, tracking, cancel with refund, invoice), customers, categories, coupons, contact messages, store settings.
 
 **Guest checkout:** nobody has to create an account. A guest enters an email and a delivery address, pays, and gets a private link in their emails to track the order and open the GST invoice. If they later sign up or log in with the same (verified) email, their earlier guest orders move into the account.
 
 **Payments & shipping:** prepaid orders only, paid through Razorpay (UPI, cards, net banking, wallets). Shipping is free on every order. Pincodes are validated at checkout against India Post and the city and state are filled in automatically.
 
-**WhatsApp:** a floating chat button on every page, and an "Enquire about this bag on WhatsApp" button on each product that opens a chat pre-filled with the bag's name, price and link. Set the number (with country code, digits only) in Admin > Settings, or with `NEXT_PUBLIC_WHATSAPP_NUMBER`.
+**WhatsApp:** a floating chat button on every page, and an "Enquire about this bag on WhatsApp" button on each product that opens a chat pre-filled with the bag's name, price and link. The store has two numbers (9817742416 and 8708863593): the floating button opens a small list so the customer can pick either, and the product and contact pages show both. Change them in Admin > Settings (comma separated), or with `NEXT_PUBLIC_WHATSAPP_NUMBER`; a 10-digit Indian number gets +91 automatically.
 
 **Returns & refunds:** customers report a damaged, defective or wrong item within 7 days of delivery, with photos, from their order page. The store reviews it in Admin > Returns (requested, approved, item received, refunded or rejected), issues the refund through Razorpay and every step, amount and reference is recorded on the request and on the order. The store can also record a return on a customer's behalf.
 
@@ -54,7 +54,7 @@ Without SMTP credentials, emails are printed to the server log. Without Razorpay
 
 ### Photos
 
-The sample products, banners and gift box use real stock photographs (Unsplash, free licence) as placeholders. They are uploaded to Cloudinary by `node scripts/stock-photos.mjs` (Cloudinary fetches them by URL) and listed in `prisma/seed-images.json`. Replace them with the client's own photos: product photos in Admin > Products, homepage slides in Admin > Banners, gift box and story photos in Admin > Settings.
+The sample products, banners and gift box use real stock photographs (Unsplash, free licence) as placeholders. They are uploaded to Cloudinary by `node scripts/stock-photos.mjs` (Cloudinary fetches them by URL) and listed in `prisma/seed-images.json`. Replace them with the client's own photos: product photos in Admin > Products (each colour has its own photos; a colour with none shows the product's main photos), homepage slides in Admin > Banners, gift box and story photos in Admin > Settings.
 
 ### Backups and recovery
 

@@ -2,6 +2,7 @@ import { refreshStore } from "@/lib/revalidate";
 import { z } from "zod";
 import { adminGuard, ok, parseBody } from "@/lib/api";
 import { saveSettings } from "@/lib/settings";
+import { parseWhatsappNumbers } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ const schema = z.object({
   storyImage: z.string().trim().max(400),
   contactEmail: z.string().trim().email(),
   contactPhone: z.string().trim().max(30),
-  whatsapp: z.string().trim().max(30),
+  whatsapp: z.string().trim().max(120).refine((v) => v === "" || parseWhatsappNumbers(v).length > 0, "Enter WhatsApp numbers such as 9817742416, 8708863593"),
   instagram: z.string().trim().max(200),
   address: z.string().trim().max(240),
   ownerEmail: z.string().trim().email().or(z.literal("")),

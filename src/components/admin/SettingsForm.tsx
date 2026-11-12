@@ -52,7 +52,7 @@ export default function SettingsForm({ initial }: { initial: Settings }) {
         <div><label className="label" htmlFor="s-mail">Public email</label><input id="s-mail" type="email" required className="input" value={s.contactEmail} onChange={str("contactEmail")} /></div>
         <div><label className="label" htmlFor="s-owner">Email for order alerts &amp; messages</label><input id="s-owner" type="email" className="input" value={s.ownerEmail} onChange={str("ownerEmail")} /></div>
         <div><label className="label" htmlFor="s-phone">Phone</label><input id="s-phone" className="input" value={s.contactPhone} onChange={str("contactPhone")} /></div>
-        <div><label className="label" htmlFor="s-wa">WhatsApp number (with country code)</label><input id="s-wa" className="input" placeholder="919876543210" value={s.whatsapp} onChange={str("whatsapp")} /></div>
+        <div className="sm:col-span-2"><label className="label" htmlFor="s-wa">WhatsApp numbers (separate with a comma)</label><input id="s-wa" className="input" placeholder="9817742416, 8708863593" value={s.whatsapp} onChange={str("whatsapp")} /><p className="mt-1.5 text-xs text-muted">The chat button on the website lets customers pick any of these numbers. Leave a 10-digit Indian number as it is; +91 is added for you.</p></div>
         <div className="sm:col-span-2"><label className="label" htmlFor="s-ig">Instagram link</label><input id="s-ig" className="input" value={s.instagram} onChange={str("instagram")} /></div>
         <div className="sm:col-span-2"><label className="label" htmlFor="s-addr">Business address (shown in footer and invoices)</label><input id="s-addr" className="input" value={s.address} onChange={str("address")} /></div>
       </section>

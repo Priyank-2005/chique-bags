@@ -23,13 +23,13 @@ export interface ProductFormValues {
   isBestSeller: boolean;
   isFeatured: boolean;
   isActive: boolean;
-  variants: { id?: string; name: string; hex: string; stock: number | "" }[];
+  variants: { id?: string; name: string; hex: string; stock: number | ""; images: string[] }[];
 }
 
 export const EMPTY_PRODUCT: ProductFormValues = {
   name: "", categoryId: "", price: "", originalPrice: "", shortDescription: "", description: "", images: [], features: "", tags: "",
   material: "", dimensions: "", careInstructions: "", isNew: true, isBestSeller: false, isFeatured: false, isActive: true,
-  variants: [{ name: "", hex: "#222222", stock: 10 }],
+  variants: [{ name: "", hex: "#222222", stock: 10, images: [] }],
 };
 
 export default function ProductForm({ initial, categories }: { initial: ProductFormValues; categories: { id: string; name: string }[] }) {
@@ -39,6 +39,10 @@ export default function ProductForm({ initial, categories }: { initial: ProductF
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState("");
+  const [colourUrls, setColourUrls] = useState<Record<number, string>>({});
+  // Which photo list the shared file picker is filling: the product's own (-1) or one colour's (its position).
+  const [uploadingFor, setUploadingFor] = useState<number | null>(null);
+  const uploadTarget = useRef(-1);
   const fileRef = useRef<HTMLInputElement>(null);
   const editing = Boolean(initial.id);
 
@@ -46,9 +50,20 @@ export default function ProductForm({ initial, categories }: { initial: ProductF
   const num = (k: "price" | "originalPrice") => (e: React.ChangeEvent<HTMLInputElement>) => setV({ ...v, [k]: e.target.value === "" ? "" : Number(e.target.value) });
   const flag = (k: "isNew" | "isBestSeller" | "isFeatured" | "isActive") => (e: React.ChangeEvent<HTMLInputElement>) => setV({ ...v, [k]: e.target.checked });
 
+  function pickFiles(target: number) {
+    uploadTarget.current = target;
+    fileRef.current?.click();
+  }
+
+  function addVariantImages(index: number, urls: string[]) {
+    setV((cur) => ({ ...cur, variants: cur.variants.map((y, n) => (n === index ? { ...y, images: [...y.images, ...urls] } : y)) }));
+  }
+
   async function upload(files: FileList | null) {
     if (!files?.length) return;
+    const target = uploadTarget.current;
     setUploading(true);
+    setUploadingFor(target);
     setError(null);
     try {
       const sigRes = await fetch("/api/admin/cloudinary-signature", { method: "POST" });
@@ -67,11 +82,13 @@ export default function ProductForm({ initial, categories }: { initial: ProductF
         if (!res.ok) throw new Error(data.error?.message ?? "Upload failed");
         urls.push(data.secure_url);
       }
-      setV((cur) => ({ ...cur, images: [...cur.images, ...urls] }));
+      if (target < 0) setV((cur) => ({ ...cur, images: [...cur.images, ...urls] }));
+      else addVariantImages(target, urls);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
+      setUploadingFor(null);
       if (fileRef.current) fileRef.current.value = "";
     }
   }
@@ -94,7 +111,7 @@ export default function ProductForm({ initial, categories }: { initial: ProductF
       dimensions: v.dimensions || null,
       careInstructions: v.careInstructions || null,
       isNew: v.isNew, isBestSeller: v.isBestSeller, isFeatured: v.isFeatured, isActive: v.isActive,
-      variants: v.variants.map((x) => ({ id: x.id, name: x.name, hex: x.hex, stock: Number(x.stock) || 0 })),
+      variants: v.variants.map((x) => ({ id: x.id, name: x.name, hex: x.hex, stock: Number(x.stock) || 0, images: x.images })),
     };
     const res = await fetch(editing ? `/api/admin/products/${initial.id}` : "/api/admin/products", {
       method: editing ? "PUT" : "POST",
@@ -133,8 +150,8 @@ export default function ProductForm({ initial, categories }: { initial: ProductF
         </section>
 
         <section className={sec}>
-          <h2 className="font-serif text-lg font-semibold">Photos</h2>
-          <p className="text-xs text-muted">The first photo is the cover. Upload from your device or paste an image link.</p>
+          <h2 className="font-serif text-lg font-semibold">Product photos</h2>
+          <p className="text-xs text-muted">The first photo is the cover on the shop pages. These photos are shown on the product page for any colour that has no photos of its own (add those under Colours &amp; stock below). Upload from your device or paste an image link.</p>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
             {v.images.map((src, i) => (
               <div key={src + i} className="group relative aspect-[4/5] overflow-hidden rounded-sm bg-cream">
@@ -146,8 +163,8 @@ export default function ProductForm({ initial, categories }: { initial: ProductF
                 </div>
               </div>
             ))}
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="grid aspect-[4/5] place-items-center rounded-sm border-2 border-dashed border-[#dccfb8] text-sm text-muted hover:border-rose hover:text-rose">
-              <span className="flex flex-col items-center gap-1"><ImagePlus size={22} />{uploading ? "Uploading…" : "Upload"}</span>
+            <button type="button" onClick={() => pickFiles(-1)} disabled={uploading} className="grid aspect-[4/5] place-items-center rounded-sm border-2 border-dashed border-[#dccfb8] text-sm text-muted hover:border-rose hover:text-rose">
+              <span className="flex flex-col items-center gap-1"><ImagePlus size={22} />{uploadingFor === -1 ? "Uploading…" : "Upload"}</span>
             </button>
           </div>
           <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => upload(e.target.files)} />
@@ -159,17 +176,45 @@ export default function ProductForm({ initial, categories }: { initial: ProductF
 
         <section className={sec}>
           <h2 className="font-serif text-lg font-semibold">Colours &amp; stock</h2>
-          <div className="space-y-3">
-            {v.variants.map((x, i) => (
-              <div key={x.id ?? i} className="flex flex-wrap items-center gap-3">
-                <input type="color" aria-label="Colour swatch" value={x.hex} onChange={(e) => setV({ ...v, variants: v.variants.map((y, n) => (n === i ? { ...y, hex: e.target.value } : y)) })} className="h-11 w-12 cursor-pointer rounded-sm border border-[#e3d8c6] bg-white p-1" />
-                <input required className="input min-w-0 flex-1" placeholder="Colour name (e.g. Dusty Rose)" aria-label="Colour name" value={x.name} onChange={(e) => setV({ ...v, variants: v.variants.map((y, n) => (n === i ? { ...y, name: e.target.value } : y)) })} />
-                <input type="number" min={0} className="input !w-24" aria-label="Stock" placeholder="Stock" value={x.stock} onChange={(e) => setV({ ...v, variants: v.variants.map((y, n) => (n === i ? { ...y, stock: e.target.value === "" ? "" : Number(e.target.value) } : y)) })} />
-                <button type="button" aria-label="Remove colour" disabled={v.variants.length === 1} className="text-muted hover:text-berry disabled:opacity-30" onClick={() => setV({ ...v, variants: v.variants.filter((_, n) => n !== i) })}><Trash2 size={17} /></button>
-              </div>
-            ))}
+          <p className="text-xs text-muted">Add photos under each colour. When a customer picks a colour, the product page shows only that colour&rsquo;s photos (the first one is its cover). A colour with no photos shows the product photos above.</p>
+          <div className="space-y-4">
+            {v.variants.map((x, i) => {
+              const patch = (p: Partial<(typeof v.variants)[number]>) => setV((cur) => ({ ...cur, variants: cur.variants.map((y, n) => (n === i ? { ...y, ...p } : y)) }));
+              return (
+                <div key={x.id ?? i} className="space-y-3 border border-[#e3d8c6] p-3.5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <input type="color" aria-label="Colour swatch" value={x.hex} onChange={(e) => patch({ hex: e.target.value })} className="h-11 w-12 cursor-pointer rounded-sm border border-[#e3d8c6] bg-white p-1" />
+                    <input required className="input min-w-0 flex-1" placeholder="Colour name (e.g. Dusty Rose)" aria-label="Colour name" value={x.name} onChange={(e) => patch({ name: e.target.value })} />
+                    <input type="number" min={0} className="input !w-24" aria-label="Stock" placeholder="Stock" value={x.stock} onChange={(e) => patch({ stock: e.target.value === "" ? "" : Number(e.target.value) })} />
+                    <button type="button" aria-label="Remove colour" disabled={v.variants.length === 1} className="text-muted hover:text-berry disabled:opacity-30" onClick={() => { setColourUrls({}); setV({ ...v, variants: v.variants.filter((_, n) => n !== i) }); }}><Trash2 size={17} /></button>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs font-semibold text-muted">Photos of {x.name || "this colour"}</p>
+                    <div className="flex flex-wrap gap-2.5">
+                      {x.images.map((src, n) => (
+                        <div key={`${src}-${n}`} className="group relative aspect-[4/5] w-[4.5rem] overflow-hidden rounded-sm bg-cream">
+                          <Image src={src} alt="" fill sizes="72px" className="object-cover" />
+                          {n === 0 && <span className="badge badge-dark absolute left-1 top-1 !px-1.5 !py-0.5 !text-[0.55rem]">Cover</span>}
+                          <div className="absolute inset-x-0 bottom-0 flex justify-between bg-black/55 px-1 py-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+                            <button type="button" className="text-[0.62rem] text-white disabled:opacity-40" disabled={n === 0} onClick={() => patch({ images: [src, ...x.images.filter((_, k) => k !== n)] })}>Cover</button>
+                            <button type="button" aria-label="Remove photo" className="text-white" onClick={() => patch({ images: x.images.filter((_, k) => k !== n) })}><X size={13} /></button>
+                          </div>
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => pickFiles(i)} disabled={uploading} className="grid aspect-[4/5] w-[4.5rem] place-items-center rounded-sm border-2 border-dashed border-[#dccfb8] text-xs text-muted hover:border-rose hover:text-rose">
+                        <span className="flex flex-col items-center gap-0.5"><ImagePlus size={18} />{uploadingFor === i ? "Uploading…" : "Add"}</span>
+                      </button>
+                    </div>
+                    <div className="mt-2.5 flex gap-2">
+                      <input className="input !py-2 text-sm" placeholder="https://… image link" aria-label={`Image link for ${x.name || "this colour"}`} value={colourUrls[i] ?? ""} onChange={(e) => setColourUrls({ ...colourUrls, [i]: e.target.value })} />
+                      <button type="button" className="btn btn-line btn-sm" onClick={() => { const url = (colourUrls[i] ?? "").trim(); if (/^https?:\/\//.test(url)) { addVariantImages(i, [url]); setColourUrls({ ...colourUrls, [i]: "" }); } }}>Add</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <button type="button" className="btn btn-line btn-sm" onClick={() => setV({ ...v, variants: [...v.variants, { name: "", hex: "#cccccc", stock: 5 }] })}><Plus size={14} /> Add colour</button>
+          <button type="button" className="btn btn-line btn-sm" onClick={() => setV({ ...v, variants: [...v.variants, { name: "", hex: "#cccccc", stock: 5, images: [] }] })}><Plus size={14} /> Add colour</button>
         </section>
       </div>
 

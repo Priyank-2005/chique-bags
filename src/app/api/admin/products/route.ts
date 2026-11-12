@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       ...rest,
       originalPrice: originalPrice && originalPrice > rest.price ? originalPrice : null,
       slug: await uniqueProductSlug(rest.name),
-      variants: { create: variants.map((v, i) => ({ name: v.name, hex: v.hex, stock: v.stock, sortOrder: i })) },
+      variants: { create: variants.map((v, i) => ({ name: v.name, hex: v.hex, stock: v.stock, images: v.images, sortOrder: i })) },
     },
   });
   return ok({ id: product.id }, 201);

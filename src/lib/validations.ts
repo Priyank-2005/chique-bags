@@ -61,6 +61,7 @@ export const productSchema = z.object({
         name: z.string().trim().min(1).max(40),
         hex: z.string().regex(/^#[0-9a-fA-F]{6}$/),
         stock: z.number().int().min(0).max(100000),
+        images: z.array(z.string().url()).max(10).default([]),
       })
     )
     .min(1, "Add at least one colour"),

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { ok } from "@/lib/api";
+import { coverPhoto } from "@/lib/product-images";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +17,9 @@ export async function GET(req: Request) {
         { category: { name: { contains: q, mode: "insensitive" } } },
       ],
     },
-    select: { slug: true, name: true, price: true, images: true },
+    select: { slug: true, name: true, price: true, images: true, variants: { select: { images: true } } },
     take: 6,
     orderBy: { isBestSeller: "desc" },
   });
-  return ok({ results: products.map((p) => ({ slug: p.slug, name: p.name, price: p.price, image: p.images[0] ?? null })) });
+  return ok({ results: products.map((p) => ({ slug: p.slug, name: p.name, price: p.price, image: coverPhoto(p) })) });
 }

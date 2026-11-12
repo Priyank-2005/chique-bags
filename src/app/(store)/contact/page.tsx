@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { Instagram } from "@/components/icons";
 import ContactForm from "@/components/store/ContactForm";
+import WhatsAppLinks from "@/components/store/WhatsAppLinks";
 import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "Contact us", description: "Questions about an order or a bag? Get in touch with Chique Bags." };
@@ -9,7 +10,6 @@ export const dynamic = "force-dynamic";
 
 export default async function ContactPage() {
   const s = await getSettings();
-  const wa = s.whatsapp.replace(/\D/g, "");
   return (
     <div className="wrap py-12 lg:py-16">
       <p className="eyebrow">Get in touch</p>
@@ -23,7 +23,7 @@ export default async function ContactPage() {
             {s.address && <li className="flex items-center gap-3"><MapPin size={18} className="text-rose" /> {s.address}</li>}
             {s.instagram && <li><a href={s.instagram} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:text-rose"><Instagram size={18} className="text-rose" /> @chiquebagsofficial</a></li>}
           </ul>
-          {wa && <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="btn btn-line btn-sm">Chat on WhatsApp</a>}
+          <WhatsAppLinks numbers={s.whatsappNumbers} heading="Chat on WhatsApp" message="Hi Chique Bags, I have a question." compact />
         </div>
         <ContactForm />
       </div>

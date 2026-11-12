@@ -6,6 +6,7 @@ import { findPaidPayment, getKeyId, getRazorpay, isGatewayConfigured, isSimulate
 import { sendOrderCancelled, sendOrderConfirmation, sendOwnerNewOrder } from "@/lib/emails";
 import { ensureInvoiceNumber } from "@/lib/gst";
 import { lookupPincode } from "@/lib/pincode";
+import { photosForColour } from "@/lib/product-images";
 import type { AddressInput } from "@/lib/validations";
 
 type Tx = Prisma.TransactionClient;
@@ -79,7 +80,7 @@ export async function priceCart(
       slug: v.product.slug,
       name: v.product.name,
       variantName: v.name,
-      image: v.product.images[0] ?? null,
+      image: photosForColour(v.product.images, v.images)[0] ?? null,
       price: v.product.price,
       mrp: Math.max(v.product.originalPrice ?? v.product.price, v.product.price),
       quantity,

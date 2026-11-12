@@ -24,9 +24,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     await tx.productVariant.deleteMany({ where: { productId: id, id: { notIn: keepIds } } });
     for (const [i, v] of variants.entries()) {
       if (v.id && existing.variants.some((e) => e.id === v.id)) {
-        await tx.productVariant.update({ where: { id: v.id }, data: { name: v.name, hex: v.hex, stock: v.stock, sortOrder: i } });
+        await tx.productVariant.update({ where: { id: v.id }, data: { name: v.name, hex: v.hex, stock: v.stock, images: v.images, sortOrder: i } });
       } else {
-        await tx.productVariant.create({ data: { productId: id, name: v.name, hex: v.hex, stock: v.stock, sortOrder: i } });
+        await tx.productVariant.create({ data: { productId: id, name: v.name, hex: v.hex, stock: v.stock, images: v.images, sortOrder: i } });
       }
     }
     await tx.product.update({

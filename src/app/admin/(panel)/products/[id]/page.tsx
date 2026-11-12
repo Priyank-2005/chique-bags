@@ -36,7 +36,7 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
           isBestSeller: p.isBestSeller,
           isFeatured: p.isFeatured,
           isActive: p.isActive,
-          variants: p.variants.map((v) => ({ id: v.id, name: v.name, hex: v.hex, stock: v.stock })),
+          variants: p.variants.map((v) => ({ id: v.id, name: v.name, hex: v.hex, stock: v.stock, images: v.images })),
         }}
       />
     </>

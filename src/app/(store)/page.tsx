@@ -57,8 +57,8 @@ export default async function HomePage() {
         <div className="wrap grid grid-cols-2 lg:grid-cols-4">
           {[
             [Hand, "Handcrafted", "Made in small batches in India"],
-            [Truck, "Free shipping", "On every order, 3 to 5 days"],
-            [RotateCcw, "Easy returns", "Refund or exchange within 7 days"],
+            [Truck, "Free shipping", "On every order, delivered in 8 to 10 days"],
+            [RotateCcw, "Easy exchange", "Report damage within 2 days of delivery"],
             [ShieldCheck, "Secure payment", "UPI, cards and net banking"],
           ].map(([Icon, t, s], i) => {
             const I = Icon as typeof Hand;
@@ -77,7 +77,7 @@ export default async function HomePage() {
       {categories.length > 0 && (
         <section className="wrap pt-24">
           <SectionHead eyebrow="The collection" title="Shop by style" />
-          <div className="grid gap-x-6 gap-y-12 sm:grid-cols-3">
+          <div className={categories.length === 3 ? "grid gap-x-6 gap-y-12 sm:grid-cols-3" : "grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6"}>
             {categories.map((c) => (
               <Link key={c.id} href={`/shop?category=${c.slug}`} className="group block">
                 <div className="relative aspect-[4/5] overflow-hidden bg-cream">

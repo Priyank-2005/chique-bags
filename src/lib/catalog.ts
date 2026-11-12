@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
+import { allPhotos, coverPhoto } from "@/lib/product-images";
 
 export const cardInclude = { variants: { orderBy: { sortOrder: "asc" } } } satisfies Prisma.ProductInclude;
 type CardRow = Prisma.ProductGetPayload<{ include: typeof cardInclude }>;
@@ -18,25 +19,27 @@ export interface ProductCardData {
   inStock: boolean;
   rating: number;
   reviewCount: number;
-  variants: { id: string; name: string; hex: string; stock: number }[];
+  /** `image` is the colour's own cover photo, when it has one. */
+  variants: { id: string; name: string; hex: string; stock: number; image: string | null }[];
 }
 
 export function toCard(p: CardRow): ProductCardData {
   const stock = p.variants.reduce((n, v) => n + v.stock, 0);
+  const photos = allPhotos(p);
   return {
     id: p.id,
     slug: p.slug,
     name: p.name,
     price: p.price,
     mrp: p.originalPrice && p.originalPrice > p.price ? p.originalPrice : null,
-    image: p.images[0] ?? null,
-    hoverImage: p.images[1] ?? null,
+    image: photos[0] ?? null,
+    hoverImage: photos[1] ?? null,
     isNew: p.isNew,
     isBestSeller: p.isBestSeller,
     inStock: stock > 0,
     rating: p.rating,
     reviewCount: p.reviewCount,
-    variants: p.variants.map((v) => ({ id: v.id, name: v.name, hex: v.hex, stock: v.stock })),
+    variants: p.variants.map((v) => ({ id: v.id, name: v.name, hex: v.hex, stock: v.stock, image: v.images[0] ?? null })),
   };
 }
 
@@ -52,12 +55,24 @@ export async function getCards(where: Prisma.ProductWhereInput, take = 8, orderB
   return cachedCards(where, take, orderBy);
 }
 
-export const getNavCategories = unstable_cache(
-  () =>
-    prisma.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, slug: true, image: true, description: true } }),
-  ["nav-categories"],
-  { tags: ["catalog"], revalidate: 60 }
-);
+// A category without its own cover photo borrows the photo of its best-selling bag.
+async function loadNavCategories() {
+  const rows = await prisma.category.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: "asc" },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      image: true,
+      description: true,
+      products: { where: { isActive: true }, orderBy: [{ isBestSeller: "desc" }, { createdAt: "desc" }], take: 1, select: { images: true, variants: { select: { images: true }, orderBy: { sortOrder: "asc" } } } },
+    },
+  });
+  return rows.map(({ products, ...c }) => ({ ...c, image: c.image ?? (products[0] ? coverPhoto(products[0]) : null) }));
+}
+
+export const getNavCategories = unstable_cache(loadNavCategories, ["nav-categories"], { tags: ["catalog"], revalidate: 60 });
 
 export const SORTS = {
   newest: { label: "Newest", orderBy: { createdAt: "desc" } },

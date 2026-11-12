@@ -4,11 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Heart, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart, useToast, useWishlist } from "@/components/providers";
+import { useProductColour } from "@/components/store/ProductColour";
 import { cn } from "@/lib/utils";
 
 interface Props {
+  /** `image` is the product's own cover photo, used when a colour has none. */
   product: { id: string; slug: string; name: string; price: number; mrp: number | null; image: string | null };
-  variants: { id: string; name: string; hex: string; stock: number }[];
+  variants: { id: string; name: string; hex: string; stock: number; images: string[] }[];
 }
 
 export default function ProductBuyBox({ product, variants }: Props) {
@@ -16,8 +18,7 @@ export default function ProductBuyBox({ product, variants }: Props) {
   const wish = useWishlist();
   const toast = useToast();
   const router = useRouter();
-  const firstAvailable = variants.find((v) => v.stock > 0) ?? variants[0];
-  const [variantId, setVariantId] = useState(firstAvailable?.id);
+  const { variantId, setVariantId } = useProductColour();
   const [qty, setQty] = useState(1);
   const variant = variants.find((v) => v.id === variantId);
   const soldOut = !variant || variant.stock === 0;
@@ -31,7 +32,7 @@ export default function ProductBuyBox({ product, variants }: Props) {
       slug: product.slug,
       name: product.name,
       variantName: variant!.name,
-      image: product.image,
+      image: variant!.images[0] ?? product.image,
       price: product.price,
       mrp: product.mrp ?? product.price,
     };

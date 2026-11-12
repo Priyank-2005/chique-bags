@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import ProductRowActions from "@/components/admin/ProductRowActions";
 import { PageHead, Pager, Table, Td } from "@/components/admin/ui";
 import { prisma } from "@/lib/db";
+import { coverPhoto } from "@/lib/product-images";
 import { formatINR } from "@/lib/utils";
 
 export const metadata = { title: "Products" };
@@ -26,11 +27,12 @@ export default async function AdminProducts({ searchParams }: { searchParams: Pr
       <Table head={["Product", "Category", "Price", "Stock", "Status", ""]} empty={products.length === 0 ? "No products found." : undefined}>
         {products.map((pr) => {
           const stock = pr.variants.reduce((n, v) => n + v.stock, 0);
+          const cover = coverPhoto(pr);
           return (
             <tr key={pr.id} className="hover:bg-cream">
               <Td>
                 <div className="flex items-center gap-3">
-                  <span className="relative h-14 w-11 shrink-0 overflow-hidden rounded-sm bg-cream">{pr.images[0] && <Image src={pr.images[0]} alt="" fill sizes="44px" className="object-cover" />}</span>
+                  <span className="relative h-14 w-11 shrink-0 overflow-hidden rounded-sm bg-cream">{cover && <Image src={cover} alt="" fill sizes="44px" className="object-cover" />}</span>
                   <Link href={`/admin/products/${pr.id}`} className="font-medium hover:text-rose">{pr.name}</Link>
                 </div>
               </Td>

@@ -23,7 +23,7 @@ export default function ProductCard({ product, priority = false }: { product: Pr
       slug: product.slug,
       name: product.name,
       variantName: firstInStock.name,
-      image: product.image,
+      image: firstInStock.image ?? product.image,
       price: product.price,
       mrp: product.mrp ?? product.price,
     });

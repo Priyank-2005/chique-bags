@@ -165,6 +165,8 @@ model ProductVariant {
   hex       String  @default("#222222")
   stock     Int     @default(0)
   sortOrder Int     @default(0)
+  // Photos of this colour. When empty the product's own photos are shown instead.
+  images    String[] @default([])
 
   product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]

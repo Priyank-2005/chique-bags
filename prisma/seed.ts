@@ -13,10 +13,19 @@ const images: { site: Record<string, string>; products: Record<string, string[]>
 );
 
 const categories = [
-  { name: "Crescent & Mini", slug: "crescent-slings", description: "Small, sculpted shapes for the essentials.", image: images.products["the-petite-crescent-sling"]?.[0] ?? null, sortOrder: 10 },
-  { name: "Quilted & Chain", slug: "quilted-chain", description: "Quilted textures and gold-tone chain straps.", image: images.products["rose-quilted-top-handle-bag"]?.[0] ?? null, sortOrder: 20 },
-  { name: "Crossbody & Everyday", slug: "crossbody-bags", description: "Easy bags for every day of the week.", image: images.site["category-crossbody"] ?? null, sortOrder: 30 },
+  { name: "Luxury bags", slug: "luxury-bags", description: "Statement bags in premium finishes.", image: images.site["category-crossbody"] ?? null, sortOrder: 10 },
+  { name: "Metal bags", slug: "metal-bags", description: "Bags with polished metal frames and hardware.", image: null, sortOrder: 20 },
+  { name: "Flapbags", slug: "flapbags", description: "Classic flap styles with polished clasps and chain straps.", image: images.products["rose-quilted-top-handle-bag"]?.[0] ?? null, sortOrder: 30 },
+  { name: "Clutches", slug: "clutches", description: "Compact clutches for evenings and occasions.", image: images.products["the-petite-crescent-sling"]?.[0] ?? null, sortOrder: 40 },
 ];
+
+// The sample bags came from three earlier categories; they now belong to the new ones.
+const OLD_CATEGORY_TO_NEW: Record<string, string> = { "crossbody-bags": "luxury-bags", "quilted-chain": "flapbags", "crescent-slings": "clutches" };
+const CATEGORY_OVERRIDES: Record<string, string> = {
+  "aura-quilted-chain-clutch": "clutches",
+  "the-petite-crescent-sling": "clutches",
+  "petal-pink-mini-flap-bag": "flapbags",
+};
 
 type SeedProduct = {
   name: string;
@@ -73,7 +82,7 @@ async function main() {
     await prisma.category.upsert({
       where: { slug: c.slug },
       create: c,
-      update: { name: c.name, description: c.description, image: c.image, sortOrder: c.sortOrder },
+      update: { name: c.name, description: c.description, sortOrder: c.sortOrder, ...(c.image ? { image: c.image } : {}) },
     });
   }
   const cats = new Map((await prisma.category.findMany()).map((c) => [c.slug, c.id]));
@@ -85,7 +94,7 @@ async function main() {
     const photos = images.products[p.slug] ?? [];
     const shared = {
       name: p.name,
-      categoryId: cats.get(p.category)!,
+      categoryId: cats.get(CATEGORY_OVERRIDES[p.slug] ?? OLD_CATEGORY_TO_NEW[p.category] ?? p.category)!,
       price: p.price,
       originalPrice: p.mrp,
       shortDescription: p.short,

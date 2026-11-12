@@ -205,7 +205,7 @@ function SearchOverlay({ onClose, onSubmit }: { onClose: () => void; onSubmit: (
           ) : (
             <div className="mt-5 flex flex-wrap items-center gap-2 pb-2">
               <span className="mr-1 text-xs uppercase tracking-[0.2em] text-muted">Popular</span>
-              {["Crescent", "Quilted", "Chain", "Black", "Under 999"].map((t) => (
+              {["Luxury", "Metal", "Flap", "Clutch", "Black"].map((t) => (
                 <button key={t} type="button" className="chip" onClick={() => onSubmit(t === "Under 999" ? "under999" : t)}>{t}</button>
               ))}
             </div>
