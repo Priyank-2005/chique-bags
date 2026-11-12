@@ -33,19 +33,72 @@ export function LoginForm({ next }: { next?: string }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // "Email me a code": the same sign-in as at checkout. It also creates the account for a new email.
+  const [mode, setMode] = useState<"password" | "code">("password");
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState("");
+
+  function done() {
+    router.push(safeNext(next));
+    router.refresh();
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     const r = await post("/api/auth/login", { email, password });
-    if (r.ok) {
-      router.push(safeNext(next));
-      router.refresh();
-    } else {
+    if (r.ok) done();
+    else {
       setError(r.data.error ?? "Could not log in");
       setBusy(false);
     }
+  }
+
+  async function sendCode(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const r = await post("/api/auth/email-code", { email });
+    setBusy(false);
+    if (r.ok) {
+      setCodeSent(true);
+      setCode("");
+    } else setError(r.data.error ?? "We couldn't send the code");
+  }
+
+  async function verifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const r = await post("/api/auth/email-login", { email, code });
+    if (r.ok) done();
+    else {
+      setError(r.data.error ?? "That code didn't work");
+      setBusy(false);
+    }
+  }
+
+  if (mode === "code") {
+    return (
+      <Shell title="Sign in with a code" subtitle={codeSent ? `We sent a 6-digit code to ${email}. It expires in 10 minutes.` : "Enter your email and we'll send you a code. No password needed, and a new email gets an account automatically."}>
+        {codeSent ? (
+          <form onSubmit={verifyCode} className="space-y-4">
+            <div><label className="label" htmlFor="code">6-digit code</label><input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required className="input tracking-[0.5em]" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} /></div>
+            <Err msg={error} />
+            <button className="btn btn-dark btn-block" disabled={busy || code.length !== 6}>{busy ? "Checking…" : "Sign in"}</button>
+            <button type="button" className="block w-full text-center text-sm font-medium underline" onClick={() => { setCodeSent(false); setCode(""); setError(null); }}>Use a different email</button>
+          </form>
+        ) : (
+          <form onSubmit={sendCode} className="space-y-4">
+            <div><label className="label" htmlFor="email">Email</label><input id="email" type="email" required autoComplete="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+            <Err msg={error} />
+            <button className="btn btn-dark btn-block" disabled={busy}>{busy ? "Sending…" : "Email me a code"}</button>
+          </form>
+        )}
+        <p className="mt-6 text-center text-sm text-muted"><button type="button" className="font-semibold text-ink underline" onClick={() => { setMode("password"); setError(null); }}>Use a password instead</button></p>
+      </Shell>
+    );
   }
 
   return (
@@ -57,7 +110,8 @@ export function LoginForm({ next }: { next?: string }) {
         <Err msg={error} />
         <button className="btn btn-dark btn-block" disabled={busy}>{busy ? "Logging in…" : "Log in"}</button>
       </form>
-      <p className="mt-6 text-center text-sm text-muted">New here? <Link href={`/signup${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-semibold text-ink underline">Create an account</Link></p>
+      <p className="mt-5 text-center text-sm text-muted">No password, or ordered before? <button type="button" className="font-semibold text-ink underline" onClick={() => { setMode("code"); setError(null); }}>Email me a code</button></p>
+      <p className="mt-3 text-center text-sm text-muted">New here? <Link href={`/signup${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-semibold text-ink underline">Create an account</Link></p>
     </Shell>
   );
 }

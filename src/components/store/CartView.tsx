@@ -8,6 +8,7 @@ import { useCart } from "@/components/providers";
 import CouponBox from "@/components/store/CouponBox";
 import PriceSummary from "@/components/store/PriceSummary";
 import { usePricing } from "@/components/store/usePricing";
+import { nameWithColour } from "@/lib/product-name";
 import { formatINR } from "@/lib/utils";
 
 export default function CartView() {
@@ -41,15 +42,15 @@ export default function CartView() {
             return (
               <li key={i.variantId} className="flex gap-5 py-6">
                 <Link href={`/products/${i.slug}`} className="relative h-32 w-24 shrink-0 overflow-hidden rounded-sm bg-cream">
-                  {i.image && <Image src={i.image} alt={i.name} fill sizes="96px" className="object-cover" />}
+                  {i.image && <Image src={i.image} alt={nameWithColour(i.name, i.variantName)} fill sizes="96px" className="object-cover" />}
                 </Link>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <div className="flex justify-between gap-3">
                     <div>
-                      <Link href={`/products/${i.slug}`} className="font-medium hover:text-rose">{i.name}</Link>
+                      <Link href={`/products/${i.slug}`} className="font-medium hover:text-rose">{nameWithColour(i.name, i.variantName)}</Link>
                       <p className="mt-0.5 text-sm text-muted">{i.variantName}</p>
                     </div>
-                    <button aria-label={`Remove ${i.name}`} onClick={() => cart.remove(i.variantId)} className="self-start text-muted hover:text-berry"><Trash2 size={18} /></button>
+                    <button aria-label={`Remove ${nameWithColour(i.name, i.variantName)}`} onClick={() => cart.remove(i.variantId)} className="self-start text-muted hover:text-berry"><Trash2 size={18} /></button>
                   </div>
                   {problem && <p className="mt-2 text-sm font-medium text-berry">{error?.message}</p>}
                   <div className="mt-auto flex items-end justify-between pt-3">
@@ -71,7 +72,7 @@ export default function CartView() {
 
         <aside className="card h-fit space-y-6 p-6 lg:sticky lg:top-28">
           <h2 className="font-serif text-xl font-semibold">Order summary</h2>
-          <CouponBox applied={data?.couponCode ?? null} error={data?.couponError ?? null} onApply={setCoupon} onRemove={() => setCoupon(null)} />
+          <CouponBox applied={data?.couponCode ?? null} error={data?.couponError ?? null} needsLogin={data?.couponNeedsLogin} onApply={setCoupon} onRemove={() => setCoupon(null)} />
           {data ? <PriceSummary p={data} /> : error && !error.variantId ? <p className="text-sm text-berry">{error.message}</p> : <p className="text-sm text-muted">Calculating…</p>}
           {error?.variantId && <p className="rounded-sm bg-blush p-3 text-sm font-medium text-berry">{error.message}</p>}
           <p className="text-xs text-muted">Free shipping on every order. We accept prepaid orders only.</p>

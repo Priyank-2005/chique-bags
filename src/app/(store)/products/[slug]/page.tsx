@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { ChevronDown, Gift, RotateCcw, ShieldCheck, Star, Truck } from "lucide-react";
 import ProductBuyBox from "@/components/store/ProductBuyBox";
 import ProductCard from "@/components/store/ProductCard";
-import { ProductColourProvider } from "@/components/store/ProductColour";
+import { ProductColourProvider, ProductTitle } from "@/components/store/ProductColour";
 import ProductGallery from "@/components/store/ProductGallery";
 import ReviewForm from "@/components/store/ReviewForm";
 import WhatsAppLinks from "@/components/store/WhatsAppLinks";
@@ -96,7 +96,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
         <div className="min-w-0 lg:sticky lg:top-28 lg:self-start">
           <p className="eyebrow">{product.category.name}</p>
-          <h1 className="h-display mt-2 text-3xl sm:text-4xl">{product.name}</h1>
+          <ProductTitle name={product.name} variants={product.variants.map((v) => ({ id: v.id, name: v.name }))} />
           {product.reviewCount > 0 && (
             <a href="#reviews" className="mt-3 inline-flex items-center gap-1.5 text-sm">
               <Star size={16} className="fill-gold text-gold" /> <strong>{product.rating.toFixed(1)}</strong>

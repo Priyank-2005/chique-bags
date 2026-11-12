@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Tag, X } from "lucide-react";
 
-export default function CouponBox({ applied, error, onApply, onRemove }: { applied: string | null; error: string | null; onApply: (code: string) => void; onRemove: () => void }) {
+export default function CouponBox({ applied, error, needsLogin = false, onApply, onRemove }: { applied: string | null; error: string | null; needsLogin?: boolean; onApply: (code: string) => void; onRemove: () => void }) {
   const [code, setCode] = useState("");
   if (applied) {
     return (
@@ -25,7 +26,12 @@ export default function CouponBox({ applied, error, onApply, onRemove }: { appli
         <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Coupon code" aria-label="Coupon code" className="input !py-2.5 uppercase" />
         <button className="btn btn-line btn-sm">Apply</button>
       </form>
-      {error && <p className="mt-2 text-xs font-medium text-berry">{error}</p>}
+      {error && (
+        <p className="mt-2 text-xs font-medium text-berry">
+          {error}
+          {needsLogin && <> <Link href="/login?next=/checkout" className="underline">Log in</Link> or <Link href="/signup?next=/checkout" className="underline">create an account</Link>.</>}
+        </p>
+      )}
     </div>
   );
 }

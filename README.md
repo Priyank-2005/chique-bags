@@ -11,11 +11,11 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQ
 
 ## What is in it
 
-**Storefront:** home, shop (filters, sort, search, pagination), product page (photos that follow the chosen colour, colour stock, reviews, JSON-LD), bag drawer and page, checkout (guest checkout with just an email, no account needed, or log in for saved addresses; coupons; prepaid with Razorpay), order success/failed, favourites, login / sign-up with email verification / password reset, account (profile, addresses, orders, invoices, cancel), track order, about, contact, policy pages, sitemap and robots.
+**Storefront:** home, shop (filters, sort, search, pagination), product page (photos that follow the chosen colour, colour stock, reviews, JSON-LD), bag drawer and page, checkout (email code sign-in that creates the account, or log in with a password; coupons; prepaid with Razorpay), order success/failed, favourites, login / sign-up with email verification / password reset, account (profile, addresses, orders, invoices, cancel; order status is shown here only), about, contact, policy pages, sitemap and robots.
 
 **Admin (`/admin`):** dashboard (revenue, 7-day chart, low stock, alerts), products (colours with their own photos, stock, Cloudinary photo upload), orders (status flow, tracking, cancel with refund, invoice), customers, categories, coupons, contact messages, store settings.
 
-**Guest checkout:** nobody has to create an account. A guest enters an email and a delivery address, pays, and gets a private link in their emails to track the order and open the GST invoice. If they later sign up or log in with the same (verified) email, their earlier guest orders move into the account.
+**Checkout sign-in:** nobody needs a password to buy. At checkout the customer enters their email and taps **Get OTP**; typing the 6-digit code we email (free, no SMS) signs them in, and creates their account if they are new. The same "Email me a code" option is on the login page, and the order API refuses an order without a signed-in customer. An account made this way starts with a name guessed from the email and takes the name on the first delivery address; the customer can set a password any time with "Forgot password". Order status, tracking and invoices are shown in the account only. **Coupons:** one-use-per-customer coupons (such as the first-order coupon) need a signed-in account, which verifying the email provides, so they can't be reused with another email.
 
 **Payments & shipping:** prepaid orders only, paid through Razorpay (UPI, cards, net banking, wallets). Shipping is free on every order. Pincodes are validated at checkout against India Post and the city and state are filled in automatically.
 
@@ -23,7 +23,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQ
 
 **Returns & refunds:** customers report a damaged, defective or wrong item within 7 days of delivery, with photos, from their order page. The store reviews it in Admin > Returns (requested, approved, item received, refunded or rejected), issues the refund through Razorpay and every step, amount and reference is recorded on the request and on the order. The store can also record a return on a customer's behalf.
 
-**GST invoices:** numbered per financial year (CB/26-27/00001), with the seller's GSTIN, HSN code, taxable value and CGST + SGST (same state) or IGST (other states), and the amount in words. Set the business name, GSTIN, state, HSN and GST rate in Admin > Settings (the page is at `/admin/settings`). Order contact details, delivery address and private notes can be edited from the admin order page.
+**Invoices:** numbered per financial year (CB/26-27/00001), showing each line, the gift box, any coupon and the total the customer paid, with the amount in words. Prices include GST, so there are no separate tax lines, GSTIN or HSN on the invoice (customers see exactly the listed price). Set the business name, address, email and phone in Admin > Settings (the page is at `/admin/settings`). Order contact details, delivery address and private notes can be edited from the admin order page.
 
 **Instagram strip:** the footer shows our bestselling bags in an Instagram-style grid linking to the Instagram profile.
 
@@ -31,7 +31,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQ
 
 **Gifting:** a gift box and a handwritten note (up to 200 characters) can be added to any order at checkout. The owner sets the price, on/off and the gift box photo in Admin > Settings. Gift orders are highlighted in the admin order screen with the note to write.
 
-**Emails:** verification codes, welcome, order confirmation, shipped, delivered, cancelled, owner new-order alert, contact messages.
+**Emails:** verification codes (sign-up, checkout, password reset), welcome, order confirmation, shipped, delivered, cancelled, owner new-order alert, contact messages. They are sent with `SMTP_*` from `.env` (for Gmail, an App password; see `.env.example`). Check the setup with `npm run mail:test -- you@example.com`.
 
 ## Getting started
 

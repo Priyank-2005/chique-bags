@@ -14,7 +14,7 @@ export default async function PrivacyPage() {
       intro="We collect only what we need to deliver your order and look after your account."
       sections={[
         { heading: "What we collect", body: ["Your name, email, phone number and delivery address when you sign up or place an order.", "Your order history, favourites and messages you send us.", "Basic technical data such as browser type, used to keep the site secure."] },
-        { heading: "How we use it", body: ["To process and deliver your orders and send order emails.", "To let you log in and manage your account.", "To reply to your questions.", "To send news and offers, only if you subscribe. You can unsubscribe any time."] },
+        { heading: "How we use it", body: ["To process and deliver your orders and send order emails.", "To let you log in and manage your account.", "To reply to your questions."] },
         { heading: "Who we share it with", body: "We share only what's needed with our service providers: payment (Razorpay), delivery couriers, email delivery and hosting. We never sell your data." },
         { heading: "Payments", body: "Card, UPI and bank details are entered on Razorpay's secure window. They are never stored on our servers." },
         { heading: "Security", body: "Passwords are stored only as one-way hashes. Our site uses encrypted connections, and access to customer data is restricted to the store owner." },

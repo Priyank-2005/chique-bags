@@ -49,16 +49,16 @@ export default async function OrderSuccessPage({ searchParams }: { searchParams:
       </div>
 
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <Link href={orderPath(order)} className="btn btn-dark">{guest ? "Track your order" : "View order"}</Link>
+        <Link href={orderPath(order)} className="btn btn-dark">{guest ? "Create an account to track it" : "View order"}</Link>
         <Link href="/shop" className="btn btn-line">Continue shopping</Link>
       </div>
       {guest && (
         <div className="card mt-10 p-6 text-left">
-          <h2 className="font-serif text-xl font-semibold">Want it even easier next time?</h2>
+          <h2 className="font-serif text-xl font-semibold">Track this order from your account</h2>
           <p className="mt-1 text-sm text-muted">
-            Create an account with {order.customerEmail} to keep this order, save your address and check out in a few taps. You can also track this order any time from the link in your confirmation email.
+            Create an account with {order.customerEmail} to see where your order is, download your invoice, save your address and check out in a few taps next time. This order will appear in it automatically.
           </p>
-          <Link href={`/signup?email=${encodeURIComponent(order.customerEmail)}`} className="btn btn-line btn-sm mt-4">Create an account</Link>
+          <Link href={orderPath(order)} className="btn btn-line btn-sm mt-4">Create an account</Link>
         </div>
       )}
     </div>

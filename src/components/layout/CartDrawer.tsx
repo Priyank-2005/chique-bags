@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { useCart } from "@/components/providers";
+import { nameWithColour } from "@/lib/product-name";
 import { formatINR } from "@/lib/utils";
 
 export default function CartDrawer() {
@@ -49,10 +50,10 @@ export default function CartDrawer() {
               {cart.items.map((i) => (
                 <li key={i.variantId} className="flex gap-4 py-5">
                   <Link href={`/products/${i.slug}`} onClick={() => cart.setDrawerOpen(false)} className="relative h-24 w-20 shrink-0 overflow-hidden rounded-sm bg-cream">
-                    {i.image && <Image src={i.image} alt={i.name} fill sizes="80px" className="object-cover" />}
+                    {i.image && <Image src={i.image} alt={nameWithColour(i.name, i.variantName)} fill sizes="80px" className="object-cover" />}
                   </Link>
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <Link href={`/products/${i.slug}`} onClick={() => cart.setDrawerOpen(false)} className="line-clamp-2 text-sm font-medium leading-snug">{i.name}</Link>
+                    <Link href={`/products/${i.slug}`} onClick={() => cart.setDrawerOpen(false)} className="line-clamp-2 text-sm font-medium leading-snug">{nameWithColour(i.name, i.variantName)}</Link>
                     <p className="mt-0.5 text-xs text-muted">{i.variantName}</p>
                     <div className="mt-auto flex items-center justify-between pt-2">
                       <div className="flex items-center rounded-none border border-[#e3d8c6]">
@@ -63,7 +64,7 @@ export default function CartDrawer() {
                       <span className="text-sm font-semibold">{formatINR(i.price * i.quantity)}</span>
                     </div>
                   </div>
-                  <button aria-label={`Remove ${i.name}`} onClick={() => cart.remove(i.variantId)} className="self-start text-muted hover:text-berry"><Trash2 size={16} /></button>
+                  <button aria-label={`Remove ${nameWithColour(i.name, i.variantName)}`} onClick={() => cart.remove(i.variantId)} className="self-start text-muted hover:text-berry"><Trash2 size={16} /></button>
                 </li>
               ))}
             </ul>

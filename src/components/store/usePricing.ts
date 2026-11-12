@@ -12,11 +12,12 @@ export interface Pricing {
   total: number;
   couponCode: string | null;
   couponError: string | null;
+  couponNeedsLogin?: boolean;
   lines: { variantId: string; price: number; mrp: number; quantity: number; stock: number }[];
 }
 
 /** Asks the server for the real totals (prices, coupon, shipping) whenever the bag changes. */
-export function usePricing(items: CartItem[], couponCode: string | null, enabled = true, giftBox = false) {
+export function usePricing(items: CartItem[], couponCode: string | null, enabled = true, giftBox = false, userKey?: string) {
   const [data, setData] = useState<Pricing | null>(null);
   const [error, setError] = useState<{ message: string; variantId?: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -53,7 +54,7 @@ export function usePricing(items: CartItem[], couponCode: string | null, enabled
       .finally(() => setLoading(false));
     return () => ctrl.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, couponCode, enabled, giftBox]);
+  }, [key, couponCode, enabled, giftBox, userKey]);
 
   return { data, error, loading };
 }

@@ -9,7 +9,9 @@ import { useCart, useToast } from "@/components/providers";
 import CouponBox from "@/components/store/CouponBox";
 import PriceSummary from "@/components/store/PriceSummary";
 import { usePricing } from "@/components/store/usePricing";
+import { hasAutoName } from "@/lib/guest-account";
 import { payWithRazorpay, preloadRazorpay, type PaymentSession } from "@/lib/razorpay-client";
+import { nameWithColour } from "@/lib/product-name";
 import { cn, formatINR } from "@/lib/utils";
 
 /** Razorpay wants a country code: turn 98765 43210 into +919876543210. */
@@ -42,7 +44,7 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
   const [coupon, setCoupon] = useState<string | null>(null);
   const [pinState, setPinState] = useState<"idle" | "checking" | "ok" | "invalid" | "unknown">("idle");
   const [selected, setSelected] = useState<string | "new">(addresses[0]?.id ?? "new");
-  const [form, setForm] = useState<Addr>({ ...EMPTY, name: user?.name ?? "", phone: user?.phone ?? "" });
+  const [form, setForm] = useState<Addr>({ ...EMPTY, name: user && !hasAutoName(user) ? user.name : "", phone: user?.phone ?? "" });
   const [saveAddress, setSaveAddress] = useState(true);
   const [giftBox, setGiftBox] = useState(false);
   const [giftNote, setGiftNote] = useState("");
@@ -52,17 +54,65 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
   // An order created here but not yet paid, so pressing the button again resumes it rather than creating a duplicate.
   const pendingRef = useRef<{ sig: string; orderId: string; token: string | null } | null>(null);
 
-  const { data, error } = usePricing(cart.items, coupon, cart.ready, giftBox);
+  // The cart is priced again when the customer signs in, because some coupons only work for a signed-in account.
+  const { data, error } = usePricing(cart.items, coupon, cart.ready, giftBox, user?.id);
 
-  // Guests only give an email: no account and no verification code.
+  // Verifying the email with a 6-digit code signs the customer in, creating their account if they are new.
   const [email, setEmail] = useState(user?.email ?? "");
-  const emailOk = Boolean(user) || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+  const emailLooksOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+  // `forEmail` is the address the code was sent to.
+  const [otp, setOtp] = useState<{ step: "idle" | "sending" | "sent" | "checking" | "signedin"; code: string; forEmail: string; cooldown: number; error: string | null }>({
+    step: "idle", code: "", forEmail: "", cooldown: 0, error: null,
+  });
+  const normEmail = email.trim().toLowerCase();
+  const emailOk = Boolean(user);
+
+  useEffect(() => {
+    if (otp.cooldown <= 0) return;
+    const t = setTimeout(() => setOtp((o) => ({ ...o, cooldown: Math.max(0, o.cooldown - 1) })), 1000);
+    return () => clearTimeout(t);
+  }, [otp.cooldown]);
+
+  // When the page learns the customer is signed in, use their saved address if they have one.
+  const wasGuest = useRef(!user);
+  useEffect(() => {
+    if (user && wasGuest.current) {
+      wasGuest.current = false;
+      if (addresses.length > 0) setSelected(addresses[0].id!);
+      setOtp({ step: "idle", code: "", forEmail: "", cooldown: 0, error: null });
+    }
+  }, [user, addresses]);
+
+  function onEmailChange(value: string) {
+    setEmail(value);
+    // Changing the address after asking for a code starts the verification again.
+    if (otp.step !== "idle" && value.trim().toLowerCase() !== otp.forEmail) setOtp({ step: "idle", code: "", forEmail: "", cooldown: 0, error: null });
+  }
+
+  async function sendCode() {
+    if (!emailLooksOk || otp.cooldown > 0) return;
+    setOtp((o) => ({ ...o, step: "sending", error: null }));
+    const r = await post("/api/auth/email-code", { email: email.trim() });
+    if (r.res.ok) setOtp((o) => ({ ...o, step: "sent", code: "", forEmail: normEmail, cooldown: 30, error: null }));
+    else setOtp((o) => ({ ...o, step: o.forEmail === normEmail ? "sent" : "idle", error: r.body.error ?? "We couldn't send the code. Please try again." }));
+  }
+
+  async function verifyCode() {
+    if (otp.code.length !== 6) return;
+    setOtp((o) => ({ ...o, step: "checking", error: null }));
+    const r = await post("/api/auth/email-login", { email: email.trim(), code: otp.code });
+    if (r.res.ok) {
+      setOtp((o) => ({ ...o, step: "signedin", code: "", error: null }));
+      router.refresh(); // the page now knows who is signed in
+    } else setOtp((o) => ({ ...o, step: "sent", error: r.body.error ?? "That code didn't work. Please try again." }));
+  }
 
   // Razorpay's script is slow on some connections: start fetching it as soon as checkout opens.
   useEffect(() => { if (onlineAvailable && !simulated) preloadRazorpay(); }, [onlineAvailable, simulated]);
 
   useEffect(() => {
-    if (user && form.name === "") setForm((f) => ({ ...f, name: user.name, phone: user.phone ?? f.phone }));
+    // An account made at checkout only has a name guessed from the email: leave the name for the customer to type.
+    if (user && form.name === "" && !hasAutoName(user)) setForm((f) => ({ ...f, name: user.name, phone: user.phone ?? f.phone }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -140,7 +190,7 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
     const address = selected === "new" ? form : addresses.find((a) => a.id === selected)!;
     if (!address) return;
     setBusy(true);
-    const sig = JSON.stringify([cart.items.map((i) => [i.variantId, i.quantity]), address, data?.couponCode ?? null, data?.total ?? null, giftBox, giftBox ? giftNote : "", user ? null : email.trim().toLowerCase()]);
+    const sig = JSON.stringify([cart.items.map((i) => [i.variantId, i.quantity]), address, data?.couponCode ?? null, data?.total ?? null, giftBox, giftBox ? giftNote : ""]);
 
     // Same bag, address and total as an unpaid order we already created? Resume that order.
     if (pendingRef.current?.sig === sig) {
@@ -152,7 +202,6 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
     const { res, body } = await post("/api/orders", {
       items: cart.items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
       address,
-      email: user ? undefined : email.trim(),
       couponCode: data?.couponCode ?? null,
       expectedTotal: data?.total,
       giftBox,
@@ -162,6 +211,7 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
     if (!res.ok) {
       setBusy(false);
       setMessage(body.error ?? "Could not place your order");
+      if (body.code === "EMAIL_UNVERIFIED") router.refresh(); // the sign-in expired: the page will ask for a code again
       if (body.code === "PRICE_CHANGED") toast("Prices changed. Please review your new total.");
       return;
     }
@@ -205,15 +255,44 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
           <section className="card p-6">
             <h2 className="mb-4 flex items-center gap-3 font-serif text-xl font-semibold"><span className="grid h-7 w-7 place-items-center rounded-full bg-ink text-sm text-white">1</span> Contact</h2>
             {user ? (
-              <p className="flex items-center gap-2 text-sm"><CheckCircle2 size={18} className="text-emerald-600" /> Signed in as <strong>{user.name}</strong> ({user.email})</p>
+              <p className="flex items-center gap-2 text-sm"><CheckCircle2 size={18} className="text-emerald-600" /> Signed in as <strong>{user.email}</strong></p>
             ) : (
               <div className="space-y-3">
                 <div>
                   <label className="label" htmlFor="c-email">Email</label>
-                  <input id="c-email" type="email" inputMode="email" autoComplete="email" className="input" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-                  <p className="mt-2 text-xs text-muted">We&apos;ll send your order confirmation and a tracking link here.</p>
+                  <div className="flex gap-2">
+                    <input id="c-email" type="email" inputMode="email" autoComplete="email" className="input min-w-0 flex-1" placeholder="you@example.com" value={email} onChange={(e) => onEmailChange(e.target.value)} aria-describedby="c-email-help" />
+                    <button type="button" className="btn btn-line shrink-0 !px-4" disabled={!emailLooksOk || otp.step === "sending" || otp.step === "checking" || otp.step === "signedin" || otp.cooldown > 0} onClick={sendCode}>
+                      {otp.step === "sending" ? "Sending…" : otp.step === "sent" || otp.step === "checking" || otp.step === "signedin" ? (otp.cooldown > 0 ? `Resend in ${otp.cooldown}s` : "Resend code") : "Get OTP"}
+                    </button>
+                  </div>
+                  {otp.step === "signedin" ? (
+                    <p id="c-email-help" role="status" className="mt-2 flex items-center gap-1.5 text-xs font-medium text-emerald-700"><CheckCircle2 size={15} /> Email verified. Signing you in…</p>
+                  ) : otp.step === "sent" || otp.step === "checking" ? (
+                    <div className="mt-3 space-y-2">
+                      <label className="label" htmlFor="c-otp">Enter the 6-digit code we sent to {otp.forEmail}</label>
+                      <div className="flex gap-2">
+                        <input
+                          id="c-otp"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          maxLength={6}
+                          className="input min-w-0 flex-1 tracking-[0.5em]"
+                          placeholder="······"
+                          value={otp.code}
+                          onChange={(e) => setOtp((o) => ({ ...o, code: e.target.value.replace(/\D/g, "").slice(0, 6), error: null }))}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); verifyCode(); } }}
+                        />
+                        <button type="button" className="btn btn-dark shrink-0 !px-5" disabled={otp.code.length !== 6 || otp.step === "checking"} onClick={verifyCode}>{otp.step === "checking" ? "Checking…" : "Verify"}</button>
+                      </div>
+                      <p id="c-email-help" className="text-xs text-muted">The code is valid for 10 minutes. Check your spam folder if you don&apos;t see it.</p>
+                    </div>
+                  ) : (
+                    <p id="c-email-help" className="mt-2 text-xs text-muted">Enter your email and tap Get OTP. We&apos;ll email you a code. Entering it signs you in, or creates your account if you&apos;re new, so you can use coupons and track your order. No password needed.</p>
+                  )}
+                  {otp.error && <p role="alert" className="mt-2 text-xs font-medium text-berry">{otp.error}</p>}
                 </div>
-                <p className="text-sm text-muted">No account needed. Already have one? <Link href="/login?next=/checkout" className="font-semibold text-ink underline">Log in</Link> to use your saved addresses.</p>
+                <p className="text-sm text-muted">Prefer a password? <Link href="/login?next=/checkout" className="font-semibold text-ink underline">Log in</Link> or <Link href="/signup?next=/checkout" className="font-semibold text-ink underline">create an account</Link>.</p>
               </div>
             )}
           </section>
@@ -302,19 +381,19 @@ export default function CheckoutClient({ user, addresses, gift, onlineAvailable,
                   {i.image && <Image src={i.image} alt="" fill sizes="56px" className="object-cover" />}
                   <span className="absolute -right-0 -top-0 grid h-5 min-w-5 place-items-center rounded-bl-lg bg-ink px-1 text-[0.65rem] font-bold text-white">{i.quantity}</span>
                 </span>
-                <span className="min-w-0 flex-1"><span className="line-clamp-1 font-medium">{i.name}</span><span className="text-xs text-muted">{i.variantName}</span></span>
+                <span className="min-w-0 flex-1"><span className="line-clamp-1 font-medium">{nameWithColour(i.name, i.variantName)}</span><span className="text-xs text-muted">{i.variantName}</span></span>
                 <span className="font-semibold">{formatINR(i.price * i.quantity)}</span>
               </li>
             ))}
           </ul>
-          <CouponBox applied={data?.couponCode ?? null} error={data?.couponError ?? null} onApply={setCoupon} onRemove={() => setCoupon(null)} />
+          <CouponBox applied={data?.couponCode ?? null} error={data?.couponError ?? null} needsLogin={data?.couponNeedsLogin} onApply={setCoupon} onRemove={() => setCoupon(null)} />
           {data ? <PriceSummary p={data} /> : error ? null : <p className="text-sm text-muted">Calculating…</p>}
           {error && <p className="rounded-sm bg-blush p-3 text-sm font-medium text-berry">{error.message} <Link href="/cart" className="underline">Review your bag</Link></p>}
           {message && <p role="alert" className="rounded-sm bg-blush p-3 text-sm font-medium text-berry">{message}</p>}
           <button className="btn btn-dark btn-block !py-4" disabled={!ready || busy} onClick={placeOrder}>
             <Lock size={15} /> {busy ? "Please wait…" : `Pay ${data ? formatINR(data.total) : ""}`}
           </button>
-          {!user && !emailOk && <p className="text-center text-xs text-muted">Enter your email above to continue.</p>}
+          {!user && !emailOk && <p className="text-center text-xs text-muted">Verify your email above to continue.</p>}
           <p className="text-center text-xs text-muted">By placing your order you agree to our <Link href="/terms" className="underline">terms</Link> and <Link href="/returns" className="underline">exchange policy</Link>.</p>
         </aside>
       </div>

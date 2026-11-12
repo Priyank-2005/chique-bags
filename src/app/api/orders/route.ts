@@ -2,37 +2,46 @@ import { z } from "zod";
 import { fail, limit, ok, parseBody } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth";
 import { createOrder } from "@/lib/checkout";
+import { prisma } from "@/lib/db";
+import { hasAutoName } from "@/lib/guest-account";
 import { getKeyId } from "@/lib/razorpay";
-import { addressSchema, cartSchema, emailSchema } from "@/lib/validations";
+import { addressSchema, cartSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
   items: cartSchema,
   address: addressSchema,
-  email: emailSchema.optional(), // required when not logged in
   couponCode: z.string().trim().max(40).nullish(),
   expectedTotal: z.number().int().nonnegative().optional(),
   giftBox: z.boolean().optional(),
   giftNote: z.string().trim().max(200, "Gift note can be up to 200 characters").nullish(),
 });
 
-// Anyone can order: a logged-in customer is attached to their account, everyone else checks out as a guest.
+// Ordering needs a signed-in customer. At checkout a new or returning customer signs in by verifying their email
+// with a code (which creates the account if needed), so there are no anonymous orders.
 export async function POST(req: Request) {
   const user = await getSessionUser();
   const parsed = await parseBody(req, schema);
   if ("error" in parsed) return parsed.error;
-  const { items, address, email, couponCode, expectedTotal, giftBox, giftNote } = parsed.data;
+  const { items, address, couponCode, expectedTotal, giftBox, giftNote } = parsed.data;
 
-  const contactEmail = user?.email ?? email;
-  if (!contactEmail) return fail("Please enter your email so we can send your order confirmation.", 400);
+  if (!user) return fail("Please verify your email with the code we send you, then place your order.", 401, { code: "EMAIL_UNVERIFIED" });
+  const contactEmail = user.email;
 
-  const limited = await limit(req, "checkout", 12, 10 * 60_000, user?.id ?? contactEmail);
+  const limited = await limit(req, "checkout", 12, 10 * 60_000, user.id);
   if (limited) return limited;
 
+  // An account made at checkout starts with a name taken from the email: use the name on the address instead.
+  let customerName = user.name;
+  if (hasAutoName(user)) {
+    customerName = address.name;
+    await prisma.user.update({ where: { id: user.id }, data: { name: address.name, ...(user.phone ? {} : { phone: address.phone }) } });
+  }
+
   const result = await createOrder({
-    userId: user?.id ?? null,
-    name: user?.name ?? address.name,
+    userId: user.id,
+    name: customerName,
     email: contactEmail,
     phone: address.phone,
     address,

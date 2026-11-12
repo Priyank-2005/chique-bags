@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { Instagram } from "@/components/icons";
-import NewsletterForm from "@/components/layout/NewsletterForm";
 import type { Settings } from "@/lib/settings";
 
 export default function Footer({ settings, categories, picks }: { settings: Settings; categories: { name: string; slug: string }[]; picks: { id: string; name: string; image: string }[] }) {
@@ -28,16 +27,6 @@ export default function Footer({ settings, categories, picks }: { settings: Sett
           </div>
         </section>
       )}
-
-      {/* newsletter */}
-      <section className="mt-20 bg-blush">
-        <div className="wrap py-16 text-center lg:py-20">
-          <p className="eyebrow">The Chique list</p>
-          <h2 className="h-display mt-4 text-3xl sm:text-5xl">New drops, first</h2>
-          <p className="mx-auto mt-4 max-w-md text-muted">Be the first to know about new arrivals, restocks and the occasional private offer.</p>
-          <div className="mt-8"><NewsletterForm /></div>
-        </div>
-      </section>
 
       <div className="bg-ink text-white">
         <div className="wrap grid gap-12 py-16 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1.2fr]">

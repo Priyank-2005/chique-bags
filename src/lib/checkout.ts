@@ -7,6 +7,7 @@ import { sendOrderCancelled, sendOrderConfirmation, sendOwnerNewOrder } from "@/
 import { ensureInvoiceNumber } from "@/lib/gst";
 import { lookupPincode } from "@/lib/pincode";
 import { photosForColour } from "@/lib/product-images";
+import { nameWithColour } from "@/lib/product-name";
 import type { AddressInput } from "@/lib/validations";
 
 type Tx = Prisma.TransactionClient;
@@ -42,6 +43,7 @@ export type PriceResult =
       total: number;
       couponCode: string | null;
       couponError: string | null;
+      couponNeedsLogin: boolean;
     }
   | { ok: false; error: string; code?: string; variantId?: string };
 
@@ -78,7 +80,7 @@ export async function priceCart(
       variantId,
       productId: v.productId,
       slug: v.product.slug,
-      name: v.product.name,
+      name: nameWithColour(v.product.name, v.name),
       variantName: v.name,
       image: photosForColour(v.product.images, v.images)[0] ?? null,
       price: v.product.price,
@@ -95,6 +97,7 @@ export async function priceCart(
   let discount = 0;
   let couponCode: string | null = null;
   let couponError: string | null = null;
+  let couponNeedsLogin = false;
   if (opts.couponCode) {
     const res = await evaluateCoupon(opts.couponCode, subtotal, opts.userId ?? null, opts.email ?? null);
     if (res.ok) {
@@ -102,6 +105,7 @@ export async function priceCart(
       couponCode = res.code;
     } else {
       couponError = res.error;
+      couponNeedsLogin = Boolean(res.loginRequired);
     }
   }
 
@@ -120,6 +124,7 @@ export async function priceCart(
     total,
     couponCode,
     couponError,
+    couponNeedsLogin,
   };
 }
 
@@ -128,13 +133,15 @@ export async function evaluateCoupon(
   subtotal: number,
   userId: string | null,
   email: string | null = null
-): Promise<{ ok: true; code: string; discount: number } | { ok: false; error: string }> {
+): Promise<{ ok: true; code: string; discount: number } | { ok: false; error: string; loginRequired?: boolean }> {
   const code = rawCode.trim().toUpperCase();
   const coupon = await prisma.coupon.findUnique({ where: { code } });
   if (!coupon || !coupon.isActive) return { ok: false, error: "This coupon code isn't valid." };
   if (coupon.expiresAt && coupon.expiresAt < new Date()) return { ok: false, error: "This coupon has expired." };
   if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) return { ok: false, error: "This coupon has been fully redeemed." };
   if (subtotal < coupon.minOrder) return { ok: false, error: `Add items worth ₹${coupon.minOrder.toLocaleString("en-IN")} or more to use this coupon.` };
+  // A "one use per customer" coupon (such as the first-order coupon) can only be enforced on an account, so guests must sign up first.
+  if (coupon.oncePerUser && !userId) return { ok: false, error: "Please log in or create an account to use this coupon.", loginRequired: true };
   if (coupon.oncePerUser && (userId || email)) {
     const who = [...(userId ? [{ userId }] : []), ...(email ? [{ email: { equals: email.trim().toLowerCase(), mode: "insensitive" as const } }] : [])];
     const used = await prisma.couponRedemption.count({ where: { couponId: coupon.id, OR: who } });

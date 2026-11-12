@@ -7,11 +7,13 @@ export function newAccessToken(): string {
   return randomBytes(18).toString("base64url");
 }
 
-/** Where a customer should be sent to see an order: their account page, or the tracking page for guests. */
-export function orderPath(o: { id: string; userId: string | null; orderNumber: string; accessToken: string | null }): string {
+/**
+ * Where a customer should be sent to see an order. Order status lives in the account: signed-up customers go
+ * straight to the order; a guest is sent to create an account with the same email (their orders attach to it).
+ */
+export function orderPath(o: { id: string; userId: string | null; customerEmail: string }): string {
   if (o.userId) return `/account/orders/${o.id}`;
-  if (!o.accessToken) return "/track";
-  return `/track?o=${encodeURIComponent(o.orderNumber)}&t=${o.accessToken}`;
+  return `/signup?email=${encodeURIComponent(o.customerEmail)}&next=${encodeURIComponent("/account/orders")}`;
 }
 
 /** The query string that lets a guest back into their own order (empty for signed-in customers). */

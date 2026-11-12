@@ -22,6 +22,10 @@ const p = (t: string) => `<p style="font-size:15px;line-height:1.65;margin:0 0 1
 const button = (href: string, label: string) =>
   `<p style="margin:22px 0"><a href="${e(href)}" style="background:#b08d57;color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:999px;font-weight:600;font-size:14px;display:inline-block">${e(label)}</a></p>`;
 
+/** Button to an order. A guest has no order page, so theirs invites them to create an account with the same email. */
+const orderButton = (order: { id: string; userId: string | null; customerEmail: string }, label = "View your order") =>
+  button(appUrl(orderPath(order)), order.userId ? label : "Create an account to track it");
+
 function itemsTable(order: OrderWithItems): string {
   const rows = order.items
     .map(
@@ -54,7 +58,7 @@ function addressBlock(order: Order): string {
 export async function sendVerificationCode(email: string, code: string, purpose: "SIGNUP" | "CHECKOUT" | "RESET") {
   const reason = {
     SIGNUP: "finish creating your Chique Bags account",
-    CHECKOUT: "continue with your checkout",
+    CHECKOUT: "verify your email and sign in to Chique Bags (your account is created automatically if you are new)",
     RESET: "reset your password",
   }[purpose];
   await sendMail({
@@ -92,7 +96,7 @@ export async function sendOrderConfirmation(order: OrderWithItems) {
         p("<strong>Delivering to</strong>") +
         addressBlock(order) +
         giftBlock(order) +
-        button(appUrl(orderPath(order)), "View your order") +
+        orderButton(order) +
         p("We'll email you again as soon as your bag ships.")
     ),
   });
@@ -106,7 +110,7 @@ export async function sendOrderShipped(order: OrderWithItems) {
       "Your order has shipped",
       p(`Good news, ${e(order.customerName.split(" ")[0])}! Order <strong>${e(order.orderNumber)}</strong> is on its way.`) +
         (order.courier ? p(`Courier: <strong>${e(order.courier)}</strong>`) : "") +
-        (order.trackingUrl ? button(order.trackingUrl, "Track your order") : button(appUrl(orderPath(order)), "View your order")) +
+        (order.trackingUrl ? button(order.trackingUrl, "Track your order") : orderButton(order)) +
         addressBlock(order)
     ),
   });
@@ -119,7 +123,7 @@ export async function sendOrderDelivered(order: OrderWithItems) {
     html: layout(
       "Your order has been delivered",
       p(`We hope you love your new bag, ${e(order.customerName.split(" ")[0])}. Tag us <strong>@chiquebagsofficial</strong> on Instagram, we'd love to see how you style it.`) +
-        button(appUrl(orderPath(order)), order.userId ? "Review your purchase" : "View your order")
+        orderButton(order, "Review your purchase")
     ),
   });
 }
@@ -187,7 +191,7 @@ export async function sendReturnReceived(order: Order, ret: ReturnLike, byStore:
       html: layout(
         "We've received your request",
         p(`Hi ${e(order.customerName.split(" ")[0])}, we're sorry your bag wasn't right. Your request <strong>${e(ret.number)}</strong> for order <strong>${e(order.orderNumber)}</strong> is with our team, and we'll update you within one working day.`) +
-          button(appUrl(orderPath(order)), "View your request")
+          orderButton(order, "View your request")
       ),
     });
   }
@@ -232,5 +236,5 @@ export async function sendReturnUpdate(order: Order, ret: ReturnLike, status: st
   };
   const c = content[status];
   if (!c) return;
-  await sendMail({ to: order.customerEmail, subject: c.subject, html: layout(c.title, c.body + button(appUrl(orderPath(order)), "View your order")) });
+  await sendMail({ to: order.customerEmail, subject: c.subject, html: layout(c.title, c.body + orderButton(order)) });
 }

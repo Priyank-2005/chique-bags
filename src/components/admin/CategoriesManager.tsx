@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { ImagePlus, Pencil, Plus, Trash2, X } from "lucide-react";
+import { uploadImages } from "@/lib/upload-client";
 
 interface Cat { id: string; name: string; description: string | null; image: string | null; sortOrder: number; isActive: boolean; productCount: number }
 const BLANK = { name: "", description: "", image: "", sortOrder: 100, isActive: true };
@@ -14,6 +15,23 @@ export default function CategoriesManager({ categories }: { categories: Cat[] })
   const [f, setF] = useState(BLANK);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function upload(files: FileList | null) {
+    if (!files?.length) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const [url] = await uploadImages([files[0]]);
+      setF((cur) => ({ ...cur, image: url }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   function open(c?: Cat) {
     setError(null);
@@ -46,10 +64,23 @@ export default function CategoriesManager({ categories }: { categories: Cat[] })
           <div><label className="label" htmlFor="ct-name">Name</label><input id="ct-name" required className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
           <div><label className="label" htmlFor="ct-order">Display order (lower shows first)</label><input id="ct-order" type="number" min={0} className="input" value={f.sortOrder} onChange={(e) => setF({ ...f, sortOrder: Number(e.target.value) })} /></div>
           <div className="sm:col-span-2"><label className="label" htmlFor="ct-desc">Description</label><input id="ct-desc" className="input" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></div>
-          <div className="sm:col-span-2"><label className="label" htmlFor="ct-img">Cover image link</label><input id="ct-img" type="url" placeholder="https://…" className="input" value={f.image} onChange={(e) => setF({ ...f, image: e.target.value })} /></div>
+          <div className="sm:col-span-2">
+            <p className="label">Cover image</p>
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="relative block aspect-[4/5] w-24 shrink-0 overflow-hidden rounded-sm bg-cream">
+                {f.image ? <Image src={f.image} alt="" fill sizes="96px" className="object-cover" /> : <span className="grid h-full place-items-center px-2 text-center text-xs text-muted">No image yet</span>}
+              </span>
+              <div className="flex flex-col items-start gap-2">
+                <button type="button" className="btn btn-line btn-sm" disabled={uploading} onClick={() => fileRef.current?.click()}><ImagePlus size={15} /> {uploading ? "Uploading…" : f.image ? "Replace image" : "Upload image"}</button>
+                {f.image && <button type="button" className="inline-flex items-center gap-1 text-xs text-muted hover:text-berry" onClick={() => setF({ ...f, image: "" })}><X size={13} /> Remove image</button>}
+                <p className="text-xs text-muted">Shown on the homepage. A portrait photo works best. If left empty, a photo of one of its bags is used.</p>
+              </div>
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => upload(e.target.files)} />
+          </div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.isActive} onChange={(e) => setF({ ...f, isActive: e.target.checked })} className="accent-[#241f1a]" /> Visible in the store</label>
           {error && <p role="alert" className="rounded-sm bg-blush p-3 text-sm font-medium text-berry sm:col-span-2">{error}</p>}
-          <div className="flex gap-3 sm:col-span-2"><button className="btn btn-dark btn-sm" disabled={busy}>{busy ? "Saving…" : "Save category"}</button><button type="button" className="btn btn-line btn-sm" onClick={() => setEditing(null)}>Cancel</button></div>
+          <div className="flex gap-3 sm:col-span-2"><button className="btn btn-dark btn-sm" disabled={busy || uploading}>{busy ? "Saving…" : "Save category"}</button><button type="button" className="btn btn-line btn-sm" onClick={() => setEditing(null)}>Cancel</button></div>
         </form>
       )}
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
