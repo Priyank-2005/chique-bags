@@ -7,13 +7,15 @@ import { useCart, useToast, useWishlist } from "@/components/providers";
 import type { ProductCardData } from "@/lib/catalog";
 import { cn, discountPercent, formatINR } from "@/lib/utils";
 
-export default function ProductCard({ product, priority = false }: { product: ProductCardData; priority?: boolean }) {
+/** `colourId` opens the product page on that colour (used when the shop is filtered by colour). */
+export default function ProductCard({ product, priority = false, colourId }: { product: ProductCardData; priority?: boolean; colourId?: string }) {
   const cart = useCart();
   const wish = useWishlist();
   const toast = useToast();
   const saved = wish.has(product.id);
   const off = discountPercent(product.price, product.mrp);
   const firstInStock = product.variants.find((v) => v.stock > 0);
+  const productHref = `/products/${product.slug}${colourId ? `?colour=${colourId}` : ""}`;
 
   function quickAdd() {
     if (!firstInStock) return;
@@ -33,7 +35,7 @@ export default function ProductCard({ product, priority = false }: { product: Pr
   return (
     <article className="group">
       <div className="relative aspect-[3/4] overflow-hidden bg-cream">
-        <Link href={`/products/${product.slug}`} aria-label={product.name} className="absolute inset-0">
+        <Link href={productHref} aria-label={product.name} className="absolute inset-0">
           {product.image && (
             <Image
               src={product.image}
@@ -83,7 +85,7 @@ export default function ProductCard({ product, priority = false }: { product: Pr
       </div>
 
       <div className="pt-4 text-center">
-        <Link href={`/products/${product.slug}`} className="block font-serif text-[1.2rem] leading-snug hover:text-berry sm:text-[1.3rem]">
+        <Link href={productHref} className="block font-serif text-[1.2rem] leading-snug hover:text-berry sm:text-[1.3rem]">
           {product.name}
         </Link>
         <div className="mt-1.5 flex flex-wrap items-baseline justify-center gap-x-2.5 text-[0.88rem]">

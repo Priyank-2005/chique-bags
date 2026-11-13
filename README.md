@@ -1,4 +1,4 @@
-# Chique Bags
+﻿# Chique Bags
 
 Custom e-commerce website for **Chique Bags** (owner: Priyanka Vora), built by Priyank Bohra.
 Handcrafted sling and crossbody bags: storefront, checkout, customer accounts, automated emails and an admin panel.
@@ -7,11 +7,11 @@ Handcrafted sling and crossbody bags: storefront, checkout, customer accounts, a
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQL + Prisma · iron-session · Razorpay · Cloudinary · Nodemailer (SMTP) · Upstash Redis (optional, rate limiting)
+Next.js 16 (App Router) Â· React 19 Â· TypeScript Â· Tailwind CSS 4 Â· PostgreSQL + Prisma Â· iron-session Â· Razorpay Â· Cloudinary Â· Nodemailer (SMTP) Â· Upstash Redis (optional, rate limiting)
 
 ## What is in it
 
-**Storefront:** home, shop (filters, sort, search, pagination), product page (photos that follow the chosen colour, colour stock, reviews, JSON-LD), bag drawer and page, checkout (email code sign-in that creates the account, or log in with a password; coupons; prepaid with Razorpay), order success/failed, favourites, login / sign-up with email verification / password reset, account (profile, addresses, orders, invoices, cancel; order status is shown here only), about, contact, policy pages, sitemap and robots.
+**Storefront:** home, shop (side filters for category, price range and colour, search, sort, pagination), product page (photos that follow the chosen colour, colour stock, reviews, JSON-LD), bag drawer and page, checkout (email code sign-in that creates the account, or log in with a password; coupons; prepaid with Razorpay), order success/failed, favourites, login / sign-up with email verification / password reset, account (profile, addresses, orders, invoices, cancel; order status is shown here only), about, contact, policy pages, sitemap and robots.
 
 **Admin (`/admin`):** dashboard (revenue, 7-day chart, low stock, alerts), products (colours with their own photos, stock, Cloudinary photo upload), orders (status flow, tracking, cancel with refund, invoice), customers, categories, coupons, contact messages, store settings.
 

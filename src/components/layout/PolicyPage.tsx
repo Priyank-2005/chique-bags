@@ -12,7 +12,7 @@ export default function PolicyPage({ title, updated, intro, sections }: { title:
             {Array.isArray(s.body) ? (
               <ul className="mt-3 list-disc space-y-2 pl-5 leading-relaxed text-muted">{s.body.map((b) => <li key={b}>{b}</li>)}</ul>
             ) : (
-              <p className="mt-3 leading-relaxed text-muted">{s.body}</p>
+              <p className="mt-3 whitespace-pre-line leading-relaxed text-muted">{s.body}</p>
             )}
           </section>
         ))}

@@ -37,8 +37,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ colour?: string }> }) {
   const { slug } = await params;
+  const { colour } = await searchParams;
   const product = await getProduct(slug);
   if (!product) notFound();
 
@@ -88,7 +89,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <Link href={`/shop?category=${product.category.slug}`} className="hover:text-rose">{product.category.name}</Link>
       </nav>
 
-      <ProductColourProvider initialId={(product.variants.find((v) => v.stock > 0) ?? product.variants[0])?.id}>
+      <ProductColourProvider initialId={(product.variants.find((v) => v.id === colour && v.stock > 0) ?? product.variants.find((v) => v.stock > 0) ?? product.variants[0])?.id}>
       <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
         <div className="min-w-0">
           <ProductGallery images={product.images.length > 0 ? product.images : allPhotos(product)} variants={product.variants.map((v) => ({ id: v.id, name: v.name, images: v.images }))} name={product.name} />
